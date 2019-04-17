@@ -46,21 +46,46 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="css\fonts\A2v10.svg" />
+    <Content Include="css\mobile.css" />
+    <Content Include="css\mobile.min.css" />
+    <Content Include="css\site.compact.css" />
+    <Content Include="css\site.compact.min.css" />
+    <Content Include="css\site.css" />
+    <Content Include="css\site.magenta.css" />
+    <Content Include="css\site.magenta.min.css" />
+    <Content Include="css\site.min.css" />
+    <Content Include="Global.asax" />
+    <Content Include="localization\default.en.txt" />
+    <Content Include="localization\default.ru.txt" />
+    <Content Include="localization\default.uk.txt" />
+    <Content Include="localization\en.xml" />
+    <Content Include="localization\ru.xml" />
+    <Content Include="localization\uk.xml" />
+    <Content Include="scripts\a2v10-vue-site.js" />
+    <Content Include="scripts\commonsite.js" />
+    <Content Include="scripts\d3.min.js" />
+    <Content Include="scripts\eusign.js" />
+    <Content Include="scripts\iframe.js" />
+    <Content Include="scripts\locale-en.min.js" />
+    <Content Include="scripts\locale-ru.min.js" />
+    <Content Include="scripts\locale-uk.min.js" />
+    <Content Include="scripts\main.js" />
+    <Content Include="scripts\vue.js" />
+    <Content Include="scripts\vue.min.js" />
     <Content Include="Web.config" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Web.Debug.config">
-      <DependentUpon>Web.config</DependentUpon>
-    </None>
-    <None Include="Web.Release.config">
-      <DependentUpon>Web.config</DependentUpon>
-    </None>
+    <Folder Include="App_apps\Lesson1\" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="App_apps\Lesson1\" />
+    <Content Include="css\fonts\A2v10.eot" />
+    <Content Include="css\fonts\A2v10.ttf" />
+    <Content Include="css\fonts\A2v10.woff" />
+    <Content Include="css\fonts\A2v10.woff2" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
