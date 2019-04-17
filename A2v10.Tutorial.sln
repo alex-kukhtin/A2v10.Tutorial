@@ -5,6 +5,11 @@ VisualStudioVersion = 15.0.28307.572
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "A2v10.Site", "A2v10.Site\A2v10.Site.csproj", "{0FA780C9-2933-4FF0-8D75-F0596E096B82}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{87313733-B25F-4959-B364-24B21C9498E1}"
+	ProjectSection(SolutionItems) = preProject
+		Docs\Платформа А2v10.docx = Docs\Платформа А2v10.docx
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
