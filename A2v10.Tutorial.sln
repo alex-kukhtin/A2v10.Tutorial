@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "A2v10.Site", "A2v10.Site\A2
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{87313733-B25F-4959-B364-24B21C9498E1}"
 	ProjectSection(SolutionItems) = preProject
+		Docs\Инструменты.docx = Docs\Инструменты.docx
+		Docs\Инструменты.pdf = Docs\Инструменты.pdf
 		Docs\Платформа А2v10.docx = Docs\Платформа А2v10.docx
 	EndProjectSection
 EndProject
