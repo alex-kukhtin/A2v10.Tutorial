@@ -90,6 +90,9 @@
     <Content Include="css\fonts\A2v10.woff" />
     <Content Include="css\fonts\A2v10.woff2" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_apps\Full\catalog\agent\model.json" />
+  </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
     <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
