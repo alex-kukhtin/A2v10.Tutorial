@@ -45,8 +45,13 @@
     <Reference Include="A2v10.Web.Mvc">
       <HintPath>..\Deploy\A2v10.Web.Mvc.dll</HintPath>
     </Reference>
+    <Reference Include="A2v10.Xaml, Version=10.0.7488.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Deploy\A2v10.Xaml.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Xaml" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="css\fonts\A2v10.svg" />
@@ -82,6 +87,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="App_apps\Full\_localization\" />
     <Folder Include="App_apps\Lesson1\" />
   </ItemGroup>
   <ItemGroup>
@@ -92,6 +98,16 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="App_apps\Full\catalog\agent\model.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_apps\Full\catalog\agent\index.view.xaml">
+      <SubType>Designer</SubType>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_apps\Full\catalog\agent\edit.dialog.xaml">
+      <SubType>Designer</SubType>
+    </Content>
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

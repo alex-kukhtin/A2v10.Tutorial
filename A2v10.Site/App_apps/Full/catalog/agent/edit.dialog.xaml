@@ -1,0 +1,13 @@
+﻿<Dialog xmlns="clr-namespace:A2v10.Xaml;assembly=A2v10.Xaml"
+		Title="Редактирование конрагента">
+	<Dialog.Buttons>
+		<Button Style="Primary" Command="{BindCmd SaveAndClose}">Сохранить</Button>
+		<Button Command="{BindCmd Close}">Отмена</Button>
+	</Dialog.Buttons>
+	<Grid AutoFlow="Row">
+		<Static Label="Id" Value="{Bind Agent.Id}"/>
+		<TextBox Label="Наименование" Value="{Bind Agent.Name}"/>
+		<TextBox Label="Код" Value="{Bind Agent.Code}"/>
+		<TextBox Label="Примечание" Value="{Bind Agent.Memo}" Multiline="True"/>
+	</Grid>
+</Dialog>

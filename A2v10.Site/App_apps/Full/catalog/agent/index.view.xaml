@@ -1,0 +1,19 @@
+﻿<Page xmlns="clr-namespace:A2v10.Xaml;assembly=A2v10.Xaml">
+	<Page.Toolbar>
+		<Toolbar>
+			<Button Icon="Plus" Command="{BindCmd Dialog, Action=Append, Url='/catalog/agent/edit', Argument={Bind Agents}}">Создать</Button>
+			<Button Icon="Reload" Command="{BindCmd Reload}">Обновить</Button>
+		</Toolbar>
+	</Page.Toolbar>
+	<DataGrid Hover="True" Striped="True" ItemsSource="{Bind Agents}">
+		<DataGridColumn Header="Id" Content="{Bind Id}" Fit="True" Wrap="NoWrap"/>
+		<DataGridColumn Header="Код" Content="{Bind Code}" Fit="True" Wrap="NoWrap"/>
+		<DataGridColumn Header="Наименование" Content="{Bind Name}"/>
+		<DataGridColumn Header="Примечание" Content="{Bind Memo}"/>
+		<DataGridColumn Fit="True" Wrap="NoWrap">
+			<CommandBar Visibility="Hover">
+				<Button Icon="Edit" Command="{BindCmd Dialog, Action=Edit, Url='/catalog/agent/edit', Argument={Bind}}"/>
+			</CommandBar>
+		</DataGridColumn>
+	</DataGrid>
+</Page>
