@@ -54,6 +54,7 @@
     <Reference Include="System.Xaml" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="App_apps\Lesson1\catalog\agent\edit.template.js" />
     <Content Include="App_apps\Lesson1\sql\lesson1.sql" />
     <Content Include="css\fonts\A2v10.svg" />
     <Content Include="css\mobile.css" />
@@ -106,6 +107,19 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="App_apps\Full\catalog\agent\edit.dialog.xaml">
+      <SubType>Designer</SubType>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_apps\Lesson1\catalog\agent\model.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_apps\Lesson1\catalog\agent\index.view.xaml">
+      <SubType>Designer</SubType>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_apps\Lesson1\catalog\agent\edit.dialog.xaml">
       <SubType>Designer</SubType>
     </Content>
   </ItemGroup>

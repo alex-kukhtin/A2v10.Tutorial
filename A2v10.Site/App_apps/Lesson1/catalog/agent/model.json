@@ -1,0 +1,16 @@
+{
+	"schema": "a2tutorial",
+	"model": "Agent",
+	"actions": {
+		"index": {
+			"index": true,
+			"view": "index.view"
+		}
+	},
+	"dialogs": {
+		"edit": {
+			"view": "edit.dialog",
+			"template": "edit.template"
+		}
+	}
+}
