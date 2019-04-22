@@ -1,4 +1,4 @@
-
+п»ї
 ------------------------------------------------
 if not exists(select * from a2sys.SysParams where [Name]= N'AppTitle')
 	insert into a2sys.SysParams([Name], StringValue) values (N'AppTitle', N'A2v10');
@@ -34,9 +34,9 @@ begin
 	insert into @menu(id, p0, [name], [url], icon, [order])
 	values
 		(1, null, N'Main',        null,         null,    0),
-		(10,   1, N'Справочники', N'catalog',   null,   10),
-		(20,   1, N'Документы',   N'document',  null,   20),
-		(100, 10, N'Контрагенты', N'agent',   N'users', 10);
+		(10,   1, N'РЎРїСЂР°РІРѕС‡РЅРёРєРё', N'catalog',   null,   10),
+		(20,   1, N'Р”РѕРєСѓРјРµРЅС‚С‹',   N'document',  null,   20),
+		(100, 10, N'РљРѕРЅС‚СЂР°РіРµРЅС‚С‹', N'agent',   N'users', 10);
 			
 	merge a2ui.Menu as target
 	using @menu as source
