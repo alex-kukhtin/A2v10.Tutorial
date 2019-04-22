@@ -1,4 +1,4 @@
-
+п»ї
 -----------------------------
 if not exists(select * from INFORMATION_SCHEMA.TABLES where TABLE_NAME = N'Agents' and TABLE_SCHEMA = N'a2tutorial')
 begin
@@ -120,7 +120,7 @@ begin
 	set nocount on;
 	set transaction isolation level serializable;
 	set xact_abort on;
-	throw 60000, N'UI:Не можна видаляти. Вам цього неможна', 0;
+	throw 60000, N'UI:РќРµ РјРѕР¶РЅР° РІРёРґР°Р»СЏС‚Рё. Р’Р°Рј С†СЊРѕРіРѕ РЅРµРјРѕР¶РЅР°', 0;
 	delete from a2tutorial.Agents where Id=@Id;
 end
 go
