@@ -5,7 +5,7 @@
 		<Button Command="{BindCmd Close}">Отмена</Button>
 	</Dialog.Buttons>
 	<Grid AutoFlow="Row">
-		<Static Label="Id" Value="{Bind Agent.Id}"/>
+		<Static Label="Id" Value="{Bind Agent.Id}" />
 		<TextBox Label="Наименование" Value="{Bind Agent.Name}"/>
 		<TextBox Label="Код" Value="{Bind Agent.Code}"/>
 		<TextBox Label="Примечание" Value="{Bind Agent.Memo}" Multiline="True"/>

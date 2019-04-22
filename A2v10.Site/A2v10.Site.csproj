@@ -54,6 +54,7 @@
     <Reference Include="System.Xaml" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="App_apps\Lesson1\sql\lesson1.sql" />
     <Content Include="css\fonts\A2v10.svg" />
     <Content Include="css\mobile.css" />
     <Content Include="css\mobile.min.css" />
@@ -88,7 +89,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_apps\Full\_localization\" />
-    <Folder Include="App_apps\Lesson1\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="css\fonts\A2v10.eot" />
