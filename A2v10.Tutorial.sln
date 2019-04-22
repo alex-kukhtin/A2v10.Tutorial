@@ -12,6 +12,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{87313733-B
 		Docs\Платформа А2v10.docx = Docs\Платформа А2v10.docx
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "sql", "sql", "{C0D4B6F2-4082-4DC8-96BC-A60ECA24958D}"
+	ProjectSection(SolutionItems) = preProject
+		sql\application.sql = sql\application.sql
+		sql\platform_full.sql = sql\platform_full.sql
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
