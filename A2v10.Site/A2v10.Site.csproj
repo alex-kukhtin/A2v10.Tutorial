@@ -56,6 +56,12 @@
   <ItemGroup>
     <Content Include="App_apps\Lesson1\catalog\agent\edit.template.js" />
     <Content Include="App_apps\Lesson1\sql\lesson1.sql" />
+    <Content Include="App_apps\Lesson2\catalog\agent\edit.template.js" />
+    <Content Include="App_apps\Lesson2\catalog\entity\edit.template.js" />
+    <Content Include="App_apps\Lesson2\catalog\entity\entity.sql" />
+    <Content Include="App_apps\Lesson2\document\income\income.template.js" />
+    <Content Include="App_apps\Lesson2\sql\lesson1.sql" />
+    <Content Include="App_apps\Lesson2\sql\lesson1__.sql" />
     <Content Include="css\fonts\A2v10.svg" />
     <Content Include="css\mobile.css" />
     <Content Include="css\mobile.min.css" />
@@ -90,6 +96,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_apps\Full\_localization\" />
+    <Folder Include="App_apps\Lesson2\_localization\_localization\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="css\fonts\A2v10.eot" />
@@ -122,6 +129,42 @@
     <Content Include="App_apps\Lesson1\catalog\agent\edit.dialog.xaml">
       <SubType>Designer</SubType>
     </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_apps\Lesson2\catalog\agent\edit.dialog.xaml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="App_apps\Lesson2\catalog\agent\index.view.xaml">
+      <SubType>Designer</SubType>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_apps\Lesson2\catalog\agent\model.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_apps\Lesson2\catalog\entity\edit.dialog.xaml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="App_apps\Lesson2\catalog\agent\browse.dialog.xaml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Page Include="App_apps\Lesson2\document\income\income.view.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="App_apps\Lesson2\document\income\index.view.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Content Include="App_apps\Lesson2\catalog\entity\index.view.xaml">
+      <SubType>Designer</SubType>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_apps\Lesson2\catalog\entity\model.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_apps\Lesson2\document\income\model.json" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

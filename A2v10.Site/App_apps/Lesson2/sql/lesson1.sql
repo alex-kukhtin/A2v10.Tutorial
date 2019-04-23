@@ -19,8 +19,7 @@ end
 go
 -----------------------------
 create or alter procedure a2tutorial.[Agent.Index]
-@UserId bigint,
-@Id bigint = null
+@UserId bigint
 as
 begin
 	set nocount on;

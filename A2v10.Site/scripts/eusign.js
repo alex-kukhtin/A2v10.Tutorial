@@ -1,6 +1,6 @@
 // Copyright © 2015-2019 Alex Kukhtin. All rights reserved.
 
-/*20190122-7421*/
+/*20190323-7488*/
 /* services/eusign.js */
 
 app.modules['std:eusign'] = function () {
