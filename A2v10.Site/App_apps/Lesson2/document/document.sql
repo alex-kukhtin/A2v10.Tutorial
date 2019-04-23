@@ -146,8 +146,8 @@ begin
 			target.LastModifiedDate = getdate(),
 			target.LastModifiedUser = @UserId
 	when not matched by target then 
-		insert ([Date], [Supplier], Memo, LastModifiedUser)
-		values ([Date], [Supplier], Memo, @UserId)
+		insert (Kind, [Date], [Supplier], Memo, LastModifiedUser)
+		values (@Kind, [Date], [Supplier], Memo, @UserId)
 	output 
 		$action op,
 		inserted.Id id
@@ -168,7 +168,6 @@ begin
 		insert (Document, Product, Qty, Price, [Sum])
 		values (@RetId, Product, Qty, Price, [Sum])
 	when not matched by source and target.Document = @RetId then delete;
-
 
 	exec a2tutorial.[Document.Load] @UserId, @RetId, @Kind
 end

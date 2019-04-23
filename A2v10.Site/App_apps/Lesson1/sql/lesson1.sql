@@ -89,24 +89,7 @@ begin
 
 	declare @output table(op nvarchar(150), id bigint);
 
-	merge a2tutorial.Agents as target
-	using @Agent as source
-	on (target.Id = source.Id)
-	when matched then
-		update set 
-			target.[Code] = source.[Code],
-			target.[Name] = source.[Name],
-			target.[Memo] = source.[Memo],
-			target.BirthDay = source.BirthDay
-	when not matched by target then 
-		insert ([Code], [Name], Memo, BirthDay)
-		values ([Code], [Name], Memo, BirthDay)
-	output 
-		$action op,
-		inserted.Id id
-	into @output(op, id);
 
-	select top(1) @RetId = id from @output;
 
 	exec a2tutorial.[Agent.Load] @UserId, @RetId;
 
