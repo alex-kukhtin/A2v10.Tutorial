@@ -56,9 +56,11 @@
   <ItemGroup>
     <Content Include="App_apps\Lesson1\catalog\agent\edit.template.js" />
     <Content Include="App_apps\Lesson1\sql\lesson1.sql" />
+    <Content Include="App_apps\Lesson3\catalog\agent\agent.sql" />
     <Content Include="App_apps\Lesson3\catalog\agent\edit.template.js" />
     <Content Include="App_apps\Lesson3\catalog\entity\edit.template.js" />
     <Content Include="App_apps\Lesson3\catalog\entity\entity.sql" />
+    <Content Include="App_apps\Lesson3\document\document.sql" />
     <Content Include="App_apps\Lesson3\document\income\income.template.js" />
     <Content Include="App_apps\Lesson3\sql\lesson1.sql" />
     <Content Include="App_apps\Lesson3\sql\lesson1__.sql" />
