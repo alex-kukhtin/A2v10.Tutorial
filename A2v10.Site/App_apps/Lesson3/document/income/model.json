@@ -1,0 +1,20 @@
+{
+	"schema": "a2tutorial",
+	"model": "Document",
+	"actions": {
+		"index": {
+			"index": true,
+			"view": "index.view",
+			"parameters": {
+				"Kind": "IN"
+			}
+		},
+		"edit": {
+			"view": "income.view",
+			"template": "income.template",
+			"parameters": {
+				"Kind": "IN"
+			}
+		}
+	}
+}
