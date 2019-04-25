@@ -1,0 +1,44 @@
+﻿
+<Page xmlns="clr-namespace:A2v10.Xaml;assembly=A2v10.Xaml">
+	<Page.Toolbar>
+		<Toolbar>
+			<PeriodPicker Value="{Bind Query.Period}" Label="Period"></PeriodPicker>
+			<Button Content="Excel" Icon="ExportExcel" Command="{BindCmd Command=ExportTo, Format=Excel}"></Button>
+		</Toolbar>
+	</Page.Toolbar>
+	<SheetPage Orientation="Portrait">
+		<Sheet GridLines="Both" Striped="True">
+			<Sheet.Columns>
+				<SheetColumn Fit="True"></SheetColumn>
+				<SheetColumn Width="100" Background="Green"></SheetColumn>
+				<SheetColumn Width="50"></SheetColumn>
+				<SheetColumn Width="100" Background="Red"></SheetColumn>
+			</Sheet.Columns>
+			<SheetSection>
+				<SheetRow Style="Title">
+					<SheetCell ColSpan="4">Список контрагентов</SheetCell>
+				</SheetRow>
+				<SheetRow Style="Parameter">
+					<SheetCell>Period</SheetCell>
+					<SheetCell Content="{Bind Query.Period.From, DataType=Date}"></SheetCell>
+					<SheetCell Content="{Bind Query.Period.To, DataType=Date}"></SheetCell>
+				</SheetRow>
+				<SheetRow Style="Header">
+					<SheetCell Content="Id"/>
+					<SheetCell Content="Name"/>
+					<SheetCell Content="Code"/>
+					<SheetCell Content="Memo"/>
+				</SheetRow>
+			</SheetSection>
+			<SheetSection ItemsSource="{Bind Agents}">
+				<SheetRow>
+					<SheetCell Content="{Bind Id}"/>
+					<SheetCell Content="{Bind Name}"/>
+					<SheetCell Content="{Bind Code}"/>
+					<SheetCell Content="{Bind Memo}"/>
+				</SheetRow>
+			</SheetSection>
+		</Sheet>
+	</SheetPage>
+</Page>
+			

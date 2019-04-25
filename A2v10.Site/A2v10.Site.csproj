@@ -56,6 +56,14 @@
   <ItemGroup>
     <Content Include="App_apps\Lesson1\catalog\agent\edit.template.js" />
     <Content Include="App_apps\Lesson1\sql\lesson1.sql" />
+    <Content Include="App_apps\Lesson4\catalog\agent\agent.sql" />
+    <Content Include="App_apps\Lesson4\catalog\agent\edit.template.js" />
+    <Content Include="App_apps\Lesson4\catalog\entity\edit.template.js" />
+    <Content Include="App_apps\Lesson4\catalog\entity\entity.sql" />
+    <Content Include="App_apps\Lesson4\document\document.sql" />
+    <Content Include="App_apps\Lesson4\document\income\income.template.js" />
+    <Content Include="App_apps\Lesson4\sql\lesson1.sql" />
+    <Content Include="App_apps\Lesson4\sql\lesson1__.sql" />
     <Content Include="App_apps\Lesson3\catalog\agent\agent.sql" />
     <Content Include="App_apps\Lesson3\catalog\agent\edit.template.js" />
     <Content Include="App_apps\Lesson3\catalog\entity\edit.template.js" />
@@ -106,6 +114,8 @@
     <Folder Include="App_apps\Full\_localization\" />
     <Folder Include="App_apps\Lesson2\_localization\_localization\" />
     <Folder Include="App_apps\Lesson3\_localization\_localization\" />
+    <Folder Include="App_apps\Lesson4\_assets\" />
+    <Folder Include="App_apps\Lesson4\_localization\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="css\fonts\A2v10.eot" />
@@ -202,6 +212,55 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="App_apps\Lesson3\document\income\model.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_apps\Lesson4\catalog\agent\browse.dialog.xaml">
+      <SubType>Designer</SubType>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_apps\Lesson4\catalog\agent\edit.dialog.xaml">
+      <SubType>Designer</SubType>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_apps\Lesson4\catalog\agent\index.view.xaml">
+      <SubType>Designer</SubType>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_apps\Lesson4\catalog\agent\model.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_apps\Lesson4\catalog\entity\edit.dialog.xaml">
+      <SubType>Designer</SubType>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_apps\Lesson4\catalog\entity\index.view.xaml">
+      <SubType>Designer</SubType>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_apps\Lesson4\catalog\entity\model.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_apps\Lesson4\document\income\income.view.xaml">
+      <SubType>Designer</SubType>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_apps\Lesson4\document\income\index.view.xaml">
+      <SubType>Designer</SubType>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_apps\Lesson4\document\income\model.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_apps\Lesson4\catalog\agent\report.view.xaml">
+      <SubType>Designer</SubType>
+    </Content>
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
