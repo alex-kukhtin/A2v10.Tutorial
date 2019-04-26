@@ -150,10 +150,10 @@ begin
 			target.[Name] = source.[Name],
 			target.[Memo] = source.[Memo],
 			target.BirthDay = source.BirthDay,
-			target.[Image] = nullif(0, source.[Image])
+			target.[Image] = nullif(source.[Image], 0)
 	when not matched by target then 
 		insert ([Code], [Name], Memo, BirthDay, [Image])
-		values ([Code], [Name], Memo, BirthDay, nullif(0, [Image]))
+		values ([Code], [Name], Memo, BirthDay, nullif([Image], 0))
 	output 
 		$action op,
 		inserted.Id id
