@@ -1,0 +1,26 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title></title>
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"/>
+</head>
+<body>
+	<div>HEADER</div>
+	<div class="nav-bar">
+		<a href="/home">Home</a>
+		<a href="/maps">GoogleMaps</a>
+	</div>
+	<div style="min-height:70vh;padding:20px;margin:20px;background-color:aliceblue;border:1px solid blue">
+		@RenderBody()
+	</div>
+	<div>FOOTER</div>
+
+	<script type="text/javascript" src="/scripts/vue.js?v=2.5.16"></script>
+	<script type="text/javascript" src="~/scripts/locale-uk.min.js"></script>
+	<script type="text/javascript" src="~/scripts/a2v10-vue-site.js"></script>
+	<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&language=uk&region=UA"></script>
+
+	@RenderSection("scripts", false)
+</body>
+</html>

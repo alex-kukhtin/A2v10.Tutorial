@@ -1,0 +1,10 @@
+{
+	"schema": "a2tutorial",
+	"model": "Agent",
+	"actions": {
+		"index": {
+			"index": true,
+			"view": "maps.view"
+		}
+	}
+}

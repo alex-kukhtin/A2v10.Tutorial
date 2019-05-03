@@ -1,0 +1,38 @@
+﻿@model A2v10.Request.ViewInfo
+
+<div id="@Model.PageId">
+	<div>
+		I am the index view
+		pageId: <span>@Model.PageId</span>
+	</div>
+
+	<div class="alert alert-primary" role="alert">
+		A simple primary alert—check it out!
+	</div>
+	<div class="alert alert-secondary" role="alert">
+		A simple secondary alert—check it out!
+	</div>
+
+	<button v-on:click.stop.prevent="$exec('addElem', Agents)">Add element</button>
+	<ul>
+		<li v-for="ag in Agents">
+			<span v-text="ag.Name"></span>
+			|
+			<span v-text="ag.$CapsName"></span>
+			<button v-on:click.stop.prevent="ag.$remove()">x</button>
+		</li>
+	</ul>
+
+	<code>
+		<pre v-text="Agents">
+</pre>
+	</code>
+
+</div>
+
+<div>Model = <span>@(Model.DataModel.Eval<Object>("Agents"))</span></div>
+
+
+@section scripts {
+	@Html.RenderVueModelScript()
+}
