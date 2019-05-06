@@ -46,7 +46,7 @@ go
 create or alter procedure a2tutorial.[Document.Load]
 @UserId bigint,
 @Id bigint = null,
-@Kind nchar(2)
+@Kind nchar(2) = N'IN'
 as
 begin
 	set nocount on;
@@ -56,7 +56,7 @@ begin
 		[Rows!TRow!Array] = null
 	from a2tutorial.Documents d
 		left join a2security.Users u on d.LastModifiedUser = u.Id
-	where Kind = @Kind and d.Id = @Id;
+	where Kind = @Kind  and d.Id = @Id;
 
 	select [!TAgent!Map] = null, [Id!!Id] = Id, Code, [Name], [Memo]
 	from a2tutorial.Agents where Id in (select Supplier from a2tutorial.Documents where Id=@Id);
@@ -205,3 +205,5 @@ exec a2tutorial.[Document.Report] 1, 104
 
 
 
+
+exec a2tutorial.[Document.Load] 99, 104

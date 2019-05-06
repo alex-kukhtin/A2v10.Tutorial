@@ -27,7 +27,7 @@ begin
 	from a2workflow.Processes p inner join a2workflow.Inbox i on p.Id = i.ProcessId
 	where i.Id = @Id;
 
-	select [Log!TLogEntry!Array] = null, Id, RecordNumber, Content, [
+	select [Log!TLogEntry!Array] = null, Id, RecordNumber, Content
 	from a2workflow.[Log]
 	where 
 	WorkflowId = @Wfid
