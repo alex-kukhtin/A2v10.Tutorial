@@ -1,0 +1,19 @@
+{
+	"schema": "a2tutorial",
+	"model": "Inbox",
+	"actions": {
+		"index": {
+			"index": true,
+			"view": "index.view"
+		},
+		"edit": {
+			"view": "edit.view",
+			"template": "edit.template"
+		}
+	},
+	"commands": {
+		"resume": {
+			"type": "resumeProcess"
+		}
+	}
+}

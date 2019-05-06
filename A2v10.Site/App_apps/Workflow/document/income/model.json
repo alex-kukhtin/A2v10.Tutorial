@@ -25,7 +25,7 @@
 	"commands": {
 		"startProcess": {
 			"type": "startProcess",
-			"file": "Workflows/Test_v1"
+			"file": "Workflows/Test1_v1"
 		}
 	}
 }

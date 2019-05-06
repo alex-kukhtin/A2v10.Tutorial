@@ -1,0 +1,17 @@
+{
+  "schema": "a2tutorial",
+  "model": "Entity",
+  "actions": {
+    "index": {
+      "index": true,
+      "view": "index.view"
+    }
+  },
+  "dialogs": {
+    "edit": {
+      "view": "edit.dialog",
+      "template": "edit.template"
+    }
+  }
+
+}

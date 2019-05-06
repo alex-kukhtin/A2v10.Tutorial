@@ -42,6 +42,10 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="A2v10.Data.Interfaces, Version=10.0.7194.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Deploy\A2v10.Data.Interfaces.dll</HintPath>
+    </Reference>
     <Reference Include="A2v10.Request, Version=10.0.7491.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Deploy\A2v10.Request.dll</HintPath>
@@ -49,15 +53,24 @@
     <Reference Include="A2v10.Web.Mvc">
       <HintPath>..\Deploy\A2v10.Web.Mvc.dll</HintPath>
     </Reference>
+    <Reference Include="A2v10.Workflow, Version=10.0.7491.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Deploy\A2v10.Workflow.dll</HintPath>
+    </Reference>
     <Reference Include="A2v10.Xaml, Version=10.0.7488.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Deploy\A2v10.Xaml.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.CSharp" />
     <Reference Include="Microsoft.Web.Infrastructure, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Web.Infrastructure.1.0.0.0\lib\net40\Microsoft.Web.Infrastructure.dll</HintPath>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Activities" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.ServiceModel" />
+    <Reference Include="System.ServiceModel.Activities" />
     <Reference Include="System.Web.Helpers, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.AspNet.WebPages.3.2.7\lib\net45\System.Web.Helpers.dll</HintPath>
     </Reference>
@@ -77,10 +90,22 @@
       <HintPath>..\packages\Microsoft.AspNet.WebPages.3.2.7\lib\net45\System.Web.WebPages.Razor.dll</HintPath>
     </Reference>
     <Reference Include="System.Xaml" />
+    <Reference Include="System.Xml" />
+    <Reference Include="System.Xml.Linq" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="App_apps\Lesson1\catalog\agent\edit.template.js" />
     <Content Include="App_apps\Lesson1\sql\lesson1.sql" />
+    <Content Include="App_apps\Workflow\catalog\agent\agent.sql" />
+    <Content Include="App_apps\Workflow\catalog\agent\edit.template.js" />
+    <Content Include="App_apps\Workflow\catalog\entity\edit.template.js" />
+    <Content Include="App_apps\Workflow\catalog\entity\entity.sql" />
+    <Content Include="App_apps\Workflow\document\document.sql" />
+    <Content Include="App_apps\Workflow\document\inbox\edit.template.js" />
+    <Content Include="App_apps\Workflow\document\income\income.template.js" />
+    <Content Include="App_apps\Workflow\sql\lesson1.sql" />
+    <Content Include="App_apps\Workflow\sql\lesson1__.sql" />
+    <Content Include="App_apps\Workflow\_layout\_scripts.html" />
     <Content Include="App_apps\Lesson5\catalog\agent\agent.sql" />
     <Content Include="App_apps\Lesson5\catalog\agent\edit.template.js" />
     <Content Include="App_apps\Lesson5\catalog\entity\edit.template.js" />
@@ -153,6 +178,8 @@
     <Folder Include="App_apps\Lesson4\_localization\" />
     <Folder Include="App_apps\Lesson5\_assets\" />
     <Folder Include="App_apps\Lesson5\_localization\" />
+    <Folder Include="App_apps\Workflow\_assets\" />
+    <Folder Include="App_apps\Workflow\_localization\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="css\fonts\A2v10.eot" />
@@ -359,7 +386,67 @@
     <Content Include="App_apps\Site\maps\maps.view.cshtml" />
     <Content Include="App_apps\Site\maps\model.json" />
     <Content Include="App_apps\Site\home\index.template.js" />
+    <Content Include="App_apps\Workflow\catalog\agent\model.json" />
+    <Content Include="App_apps\Workflow\catalog\entity\model.json" />
+    <Content Include="App_apps\Workflow\document\income\model.json" />
+    <Content Include="App_apps\Workflow\document\inbox\model.json" />
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_apps\Workflow\catalog\agent\browse.dialog.xaml">
+      <SubType>Designer</SubType>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_apps\Workflow\catalog\agent\edit.dialog.xaml">
+      <SubType>Designer</SubType>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_apps\Workflow\catalog\agent\index.view.xaml">
+      <SubType>Designer</SubType>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_apps\Workflow\catalog\agent\report.view.xaml">
+      <SubType>Designer</SubType>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_apps\Workflow\catalog\entity\edit.dialog.xaml">
+      <SubType>Designer</SubType>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_apps\Workflow\catalog\entity\index.view.xaml">
+      <SubType>Designer</SubType>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_apps\Workflow\document\income\income.view.xaml">
+      <SubType>Designer</SubType>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_apps\Workflow\document\income\index.view.xaml">
+      <SubType>Designer</SubType>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <XamlAppDef Include="App_apps\Workflow\workflows\Test1_v1.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </XamlAppDef>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_apps\Workflow\document\inbox\index.view.xaml">
+      <SubType>Designer</SubType>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_apps\Workflow\document\inbox\edit.view.xaml">
+      <SubType>Designer</SubType>
+    </Content>
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

@@ -1,0 +1,101 @@
+﻿<Page xmlns="clr-namespace:A2v10.Xaml;assembly=A2v10.Xaml">
+	<Page.Toolbar>
+		<Toolbar>
+			<Button Content="Save" Icon="Save" Command="{BindCmd Save}"/>
+			<Button Content="Reload" Icon="Reload" Command="{BindCmd Reload}"></Button>
+			<Button Content="Print" Icon="Print" Command="{BindCmd Command=Report, Report='invoice', Argument={Bind Document}}"/>
+			<Button Content="Print" Icon="Print" Command="{BindCmd Command=Report, Report='invoice', Argument={Bind Document}, Print=True}"/>
+			<Button Content="Close" Icon="Close" Command="{BindCmd Close}" Toolbar.Align="Right"></Button>
+		</Toolbar>
+	</Page.Toolbar>
+	<Page.Taskpad>
+		<Taskpad>
+			<Panel Header="Info" Style="Info" Collapsible="True">
+				<PropertyGrid GridLines="Both">
+					<PropertyGridItem Name="LastModified" Content="{Bind Document.LastModifiedDate, DataType=DateTime}"/>
+					<PropertyGridItem Name="User" Content="{Bind Document.User.Name}"/>
+				</PropertyGrid>
+			</Panel>
+			<Panel>
+				<FieldSet>
+					<Radio Value="{Bind Document.$Radio}" Label="Empty" CheckedValue=""></Radio>
+					<Radio Value="{Bind Document.$Radio}" Label="First" CheckedValue="First"></Radio>
+					<Radio Value="{Bind Document.$Radio}" Label="Second" CheckedValue="Second"></Radio>
+					<Radio Value="{Bind Document.$Radio}" Label="Third" CheckedValue="Third"></Radio>
+				</FieldSet>
+			</Panel>
+			<Panel Header="Workflow">
+				<Button  Block="True" Style="Orange"
+					Command="{BindCmd Execute, CommandName='startProcess', Argument={Bind Document}}">Start Workflow!</Button>
+			</Panel>
+			<Code Multiline="True" Content="{Bind Document}">
+				
+			</Code>
+		</Taskpad>
+	</Page.Taskpad>
+	<Grid Columns="150,1*,1*,1*">
+		<Header Grid.Row="1" Grid.Col="1" Grid.ColSpan="4">Приходная накладная</Header>
+		<DatePicker Grid.Row="2" Grid.Col="1"
+			Value="{Bind Document.Date}" Label="Дата"/>
+		<Selector Value="{Bind Document.Supplier}" Grid.Row="3" Grid.ColSpan="2" Label="Поставщик" DisplayProperty="Name"
+				Delegate="fetchSupplier" ListSize="40rem,20rem" PanelPlacement="BottomLeft"
+				  CreateNewCommand="{BindCmd Execute, CommandName=newSupplier}">
+			<Selector.AddOns>
+				<Hyperlink Icon="Search" Command="{BindCmd Browse, Url='/catalog/agent/browse', 
+					Argument={Bind Document.Supplier}}"/>
+				<Hyperlink Icon="EllipsisVertical" If="{Bind !Document.Supplier.$isEmpty}">
+					<Hyperlink.DropDown>
+						<DropDownMenu>
+							<MenuItem Content="Edit" Icon="Edit" Command="{BindCmd Dialog, Action=Edit, Argument={Bind Document.Supplier}, Url='/catalog/agent/edit'}"/>
+							<MenuItem Content="Clear" Icon="Clear" Command="{BindCmd Command=Clear, Argument={Bind Document.Supplier}}"/>
+						</DropDownMenu>
+					</Hyperlink.DropDown>
+				</Hyperlink>
+			</Selector.AddOns>
+			<Selector.ItemsPanel>
+				<DataGrid Striped="True" GridLines="Vertical" Hover="True">
+					<DataGridColumn Header="Id" Content="{Bind Id}"/>
+					<DataGridColumn Header="Name" Content="{Bind Name}"/>
+					<DataGridColumn Header="Code" Content="{Bind Code}"/>
+					<DataGridColumn Header="Memo" Content="{Bind Memo}"/>
+				</DataGrid>
+			</Selector.ItemsPanel>
+		</Selector>
+		<Block Grid.Row="4" Grid.ColSpan="4">
+			<Toolbar>
+				<Button Content="AppendRow" Icon="Plus" 
+						Command="{BindCmd Append, Argument={Bind Document.Rows}}"></Button>
+			</Toolbar>
+			<Table ItemsSource="{Bind Document.Rows}" Width="100%" GridLines="Both">
+				<Table.Header>
+					<TableRow>
+						<TableCell Content="Id"/>
+						<TableCell Content="Entity"/>
+						<TableCell Content="Qty"/>
+						<TableCell Content="Price"/>
+						<TableCell Content="Sum"/>
+						<TableCell/>
+					</TableRow>
+				</Table.Header>
+				<TableRow>
+					<TableCell Content="{Bind Id}"/>
+					<TableCell Content="{Bind Product.Name}"/>
+					<TextBox Value="{Bind Qty}"/>
+					<TextBox Value="{Bind Price}"/>
+					<TextBox Value="{Bind Sum}"/>
+					<TableCell>
+						<Hyperlink Icon="Delete" Command="{BindCmd Remove, Argument={Bind}, Confirm='Are you sure?'}"></Hyperlink>
+					</TableCell>
+				</TableRow>
+				<Table.Footer>
+					<TableRow>
+						<TableCell ColSpan="4">Total</TableCell>
+						<TableCell Content="{Bind Document.$Sum}"></TableCell>
+					</TableRow>
+				</Table.Footer>
+			</Table>
+		</Block>
+		<TextBox Value="{Bind Document.Memo}" Grid.ColSpan="4"
+				 Multiline="True" Rows="4" Grid.Row="5"/>
+	</Grid>
+</Page>

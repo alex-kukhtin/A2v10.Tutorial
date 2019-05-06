@@ -1,0 +1,29 @@
+﻿<Page xmlns="clr-namespace:A2v10.Xaml;assembly=A2v10.Xaml">
+	<Page.Toolbar>
+		<Toolbar>
+			<Button Content="Reload" Icon="Reload" Command="{BindCmd Reload}"></Button>
+			<Button Content="Close" Icon="Close" Command="{BindCmd Close}" Toolbar.Align="Right"></Button>
+		</Toolbar>
+	</Page.Toolbar>
+	<TabPanel>
+		<Tab Header="Inbox">
+			<Grid Columns="300,1*">
+				<Header Grid.Row="1" Grid.Col="1" Grid.ColSpan="4">Inbox</Header>
+				<Static Grid.Row="2" Label="Id" Value="{Bind Inbox.Id}"/>
+				<Static Grid.Row="3" Label="ProcessId" Value="{Bind Inbox.ProcessId}"/>
+				<Static Grid.Row="4" Label="Bookmark" Value="{Bind Inbox.Bookmark}"/>
+				<FieldSet Title="End process?" Grid.Row="5" Orientation="Horizontal">
+					<Button Style="Green" Command="{BindCmd Execute, CommandName=resume, Argument='OK'}">OK</Button>
+					<Button Style="Red"  Command="{BindCmd Execute, CommandName=resume, Argument='Cancel'}">Cancel</Button>
+				</FieldSet>
+			</Grid>
+		</Tab>
+		<Tab Header="Log">
+			<DataGrid Height="600" ItemsSource="{Bind Log}" GridLines="Vertical" Striped="True" FixedHeader="True">
+				<DataGridColumn Header="Id" Content="{Bind Id}" Fit="True" Wrap="NoWrap"/>
+				<DataGridColumn Header="RecordNumber" Content="{Bind RecordNumber}" Fit="True" Wrap="NoWrap"/>
+				<DataGridColumn Header="Content" Content="{Bind Content}" Small="True"/>
+			</DataGrid>
+		</Tab>
+	</TabPanel>
+</Page>

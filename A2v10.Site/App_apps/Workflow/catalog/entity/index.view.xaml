@@ -1,0 +1,25 @@
+﻿<Page xmlns="clr-namespace:A2v10.Xaml;assembly=A2v10.Xaml">
+	<Page.Toolbar>
+		<Toolbar>
+			<Button Content="Make" Icon="Add" 
+					Command="{BindCmd Dialog, Action=Append, Url='/catalog/entity/edit', Argument={Bind Entities}}"/>
+			<Button Content="Reload" Icon="Reload" Command="{BindCmd Reload}"></Button>
+		</Toolbar>
+	</Page.Toolbar>
+	<DataGrid ItemsSource="{Bind Entities}" Hover="True" Striped="True" GridLines="Both">
+		<DataGridColumn Header="Id" Content="{Bind Id}" Fit="True" Align="Right" Wrap="NoWrap"/>
+		<DataGridColumn Header="artNo" Content="{Bind artNo}"/>
+		<DataGridColumn Header="Name" Content="{Bind Name}"/>
+		<DataGridColumn Header="Barcode" Content="{Bind barcode}"/>
+		<DataGridColumn Header="DateIn" Content="{Bind dateIn, DataType=Date}"/>
+		<DataGridColumn Header="Memo" Content="{Bind memo}"/>
+		<DataGridColumn Fit="True">
+			<CommandBar Visibility="Hover">
+				<Button Icon="Edit" 
+					Command="{BindCmd Dialog, Action=Edit, Url='/catalog/entity/edit', Argument={Bind}}"/>
+				<Button Icon="Clear" 
+					Command="{BindCmd Command=DbRemove, Argument={Bind}, Confirm='Вы уверены?'}"/>
+			</CommandBar>
+		</DataGridColumn>
+	</DataGrid>
+</Page>

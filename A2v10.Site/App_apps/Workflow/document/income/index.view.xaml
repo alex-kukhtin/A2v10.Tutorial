@@ -1,0 +1,30 @@
+﻿<Page xmlns="clr-namespace:A2v10.Xaml;assembly=A2v10.Xaml">
+	<Page.Toolbar>
+		<Toolbar>
+			<Button Icon="PlusBox" Content="Create" 
+					Command="{BindCmd Command=Navigate, Url='/document/income/edit/0'}"/>
+			<Button Content="@[Reload]" Icon="Reload" Command="{BindCmd Reload}"></Button>
+		</Toolbar>
+	</Page.Toolbar>
+	<DataGrid ItemsSource="{Bind Documents}" Hover="True" Striped="True" GridLines="Both">
+		<DataGridColumn Header="Id" Content="{Bind Id}" Fit="True" Align="Right" Wrap="NoWrap"/>
+		<DataGridColumn Header="Date" Content="{Bind Date, DataType=Date}" Fit="True" Wrap="NoWrap" Align="Center"/>
+		<DataGridColumn Header="Memo" Content="{Bind Memo}" Fit="True" Wrap="NoWrap"/>
+		<DataGridColumn Header="LastModified" Fit="True" Wrap="NoWrap" Small="True">
+			<Text>
+				Дата:
+				<Span Content="{Bind LastModifiedDate, DataType=DateTime}"/>
+				<Break/>
+				Пользователь:
+				<Span Content="{Bind User.Name}"/>
+			</Text>
+		</DataGridColumn>
+		<DataGridColumn Fit="True">
+			<CommandBar Visibility="Hover">
+				<Button Icon="Edit" 
+					Command="{BindCmd Command=Open, Url='/document/income/edit', Argument={Bind}}"/>
+				<Button Icon="Clear"/>
+			</CommandBar>
+		</DataGridColumn>
+	</DataGrid>
+</Page>

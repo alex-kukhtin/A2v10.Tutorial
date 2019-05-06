@@ -1,0 +1,21 @@
+﻿<Page xmlns="clr-namespace:A2v10.Xaml;assembly=A2v10.Xaml">
+	<Page.Toolbar>
+		<Toolbar>
+			<Button Content="@[Reload]" Icon="Reload" Command="{BindCmd Reload}"></Button>
+		</Toolbar>
+	</Page.Toolbar>
+	<DataGrid ItemsSource="{Bind Inboxes}" Hover="True" Striped="True" GridLines="Both">
+		<DataGridColumn Header="Id" Content="{Bind Id}" Fit="True" Align="Right" Wrap="NoWrap"/>
+		<DataGridColumn Header="ProcessId" Content="{Bind ProcessId}" Fit="True" Align="Right" Wrap="NoWrap"/>
+		<DataGridColumn Header="DateCreated" Content="{Bind DateCreated, DataType=DateTime}" Fit="True" Wrap="NoWrap" Align="Center"/>
+		<DataGridColumn Header="Bookmark" Content="{Bind Bookmark}" Fit="True" Wrap="NoWrap"/>
+		<DataGridColumn Header="Text" Content="{Bind Text}" Fit="True" Wrap="NoWrap"/>
+		<DataGridColumn Fit="True">
+			<CommandBar Visibility="Hover">
+				<Button Icon="Edit" 
+					Command="{BindCmd Command=Open, Url='/document/inbox/edit', Argument={Bind}}"/>
+				<Button Icon="Clear"/>
+			</CommandBar>
+		</DataGridColumn>
+	</DataGrid>
+</Page>
