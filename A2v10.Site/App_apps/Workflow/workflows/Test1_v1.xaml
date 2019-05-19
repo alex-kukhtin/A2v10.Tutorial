@@ -1,4 +1,4 @@
-﻿<Activity mc:Ignorable="sap sap2010 sads" x:Class="TestWorkflow_v1"
+﻿<Activity mc:Ignorable="sap sap2010 sads" x:Class="Test1_v2"
  xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities"
  xmlns:adi="clr-namespace:A2v10.Data.Interfaces;assembly=A2v10.Data.Interfaces"
  xmlns:av="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -14,14 +14,14 @@
   <x:Members>
     <x:Property Name="Process" Type="InArgument(aw:Process)" />
     <x:Property Name="Comment" Type="InArgument(x:String)" />
-    <x:Property Name="Result" Type="InArgument(aw:RequestResult)" />
   </x:Members>
   <sap2010:ExpressionActivityEditor.ExpressionActivityEditor>C#</sap2010:ExpressionActivityEditor.ExpressionActivityEditor>
-  <sap2010:WorkflowViewState.IdRef>Apps.Crm.Workflows.TestTimer_v1_1</sap2010:WorkflowViewState.IdRef>
+  <sap2010:WorkflowViewState.IdRef>A2v10.Site.App_apps.Workflow.workflows.Test1_v2_1</sap2010:WorkflowViewState.IdRef>
   <TextExpression.NamespacesForImplementation>
     <sco:Collection x:TypeArguments="x:String">
       <x:String>System</x:String>
       <x:String>System.Collections.Generic</x:String>
+      <x:String>System.Data</x:String>
       <x:String>System.Linq</x:String>
       <x:String>System.Text</x:String>
       <x:String>A2v10.Workflow</x:String>
@@ -30,40 +30,31 @@
   </TextExpression.NamespacesForImplementation>
   <TextExpression.ReferencesForImplementation>
     <sco:Collection x:TypeArguments="AssemblyReference">
-      <AssemblyReference>A2v10.Request</AssemblyReference>
-      <AssemblyReference>A2v10.Web.Mvc</AssemblyReference>
+      <AssemblyReference>A2v10.Data.Interfaces</AssemblyReference>
+      <AssemblyReference>A2v10.Workflow</AssemblyReference>
       <AssemblyReference>A2v10.Xaml</AssemblyReference>
-      <AssemblyReference>Microsoft.Web.Infrastructure</AssemblyReference>
-      <AssemblyReference>System</AssemblyReference>
-      <AssemblyReference>System.Core</AssemblyReference>
-      <AssemblyReference>System.Web.Helpers</AssemblyReference>
-      <AssemblyReference>System.Web.Mvc</AssemblyReference>
-      <AssemblyReference>System.Web.Razor</AssemblyReference>
-      <AssemblyReference>System.Web.WebPages</AssemblyReference>
-      <AssemblyReference>System.Web.WebPages.Deployment</AssemblyReference>
-      <AssemblyReference>System.Web.WebPages.Razor</AssemblyReference>
-      <AssemblyReference>System.Xaml</AssemblyReference>
       <AssemblyReference>Microsoft.CSharp</AssemblyReference>
+      <AssemblyReference>System</AssemblyReference>
       <AssemblyReference>System.Activities</AssemblyReference>
+      <AssemblyReference>System.Core</AssemblyReference>
+      <AssemblyReference>System.Xaml</AssemblyReference>
+      <AssemblyReference>System.Xml</AssemblyReference>
+      <AssemblyReference>A2v10.Messaging</AssemblyReference>
       <AssemblyReference>System.Data</AssemblyReference>
       <AssemblyReference>System.ServiceModel</AssemblyReference>
       <AssemblyReference>System.ServiceModel.Activities</AssemblyReference>
-      <AssemblyReference>System.Xml</AssemblyReference>
       <AssemblyReference>System.Xml.Linq</AssemblyReference>
-      <AssemblyReference>A2v10.Workflow</AssemblyReference>
-      <AssemblyReference>A2v10.Data.Interfaces</AssemblyReference>
       <AssemblyReference>mscorlib</AssemblyReference>
-      <AssemblyReference>A2v10.Site</AssemblyReference>
     </sco:Collection>
   </TextExpression.ReferencesForImplementation>
   <Flowchart sap2010:WorkflowViewState.IdRef="Flowchart_1">
     <Flowchart.Variables>
-      <Variable x:TypeArguments="aw:RequestResult" Name="Answer" />
       <Variable x:TypeArguments="adi:IDataModel" Name="DataModel" />
       <Variable x:TypeArguments="x:Decimal" Name="Sum" />
+      <Variable x:TypeArguments="aw:RequestResult" Name="Result" />
     </Flowchart.Variables>
     <Flowchart.StartNode>
-      <FlowStep x:Name="__ReferenceID1" sap2010:WorkflowViewState.IdRef="FlowStep_7">
+      <FlowStep x:Name="__ReferenceID1" sap2010:WorkflowViewState.IdRef="FlowStep_1">
         <Assign sap2010:WorkflowViewState.IdRef="Assign_1">
           <Assign.To>
             <OutArgument x:TypeArguments="adi:IDataModel">
@@ -77,7 +68,7 @@
           </Assign.Value>
         </Assign>
         <FlowStep.Next>
-          <FlowStep x:Name="__ReferenceID2" sap2010:WorkflowViewState.IdRef="FlowStep_11">
+          <FlowStep x:Name="__ReferenceID2" sap2010:WorkflowViewState.IdRef="FlowStep_2">
             <Assign sap2010:WorkflowViewState.IdRef="Assign_2">
               <Assign.To>
                 <OutArgument x:TypeArguments="x:Decimal">
@@ -91,8 +82,8 @@
               </Assign.Value>
             </Assign>
             <FlowStep.Next>
-              <FlowStep x:Name="__ReferenceID0" sap2010:WorkflowViewState.IdRef="FlowStep_12">
-                <aw:Request InboxId="{x:Null}" SendAfter="{x:Null}" SendBefore="{x:Null}" StateAfter="{x:Null}" StateBefore="{x:Null}" TrackAfter="{x:Null}" TrackBefore="{x:Null}" sap2010:WorkflowViewState.IdRef="Request_3">
+              <FlowStep x:Name="__ReferenceID0" sap2010:WorkflowViewState.IdRef="FlowStep_3">
+                <aw:Request InboxId="{x:Null}" SendAfter="{x:Null}" SendBefore="{x:Null}" StateAfter="{x:Null}" StateBefore="{x:Null}" TrackAfter="{x:Null}" TrackBefore="{x:Null}" sap2010:WorkflowViewState.IdRef="Request_1">
                   <aw:Request.Inbox>
                     <InArgument x:TypeArguments="aw:Inbox">
                       <mca:CSharpValue x:TypeArguments="aw:Inbox" xml:space="preserve">new Inbox
@@ -111,7 +102,7 @@
                   </aw:Request.Result>
                 </aw:Request>
                 <FlowStep.Next>
-                  <FlowDecision x:Name="__ReferenceID3" sap2010:WorkflowViewState.IdRef="FlowDecision_2">
+                  <FlowDecision x:Name="__ReferenceID3" sap2010:WorkflowViewState.IdRef="FlowDecision_1">
                     <FlowDecision.Condition>
                       <mca:CSharpValue x:TypeArguments="x:Boolean">Result.Answer == "OK"</mca:CSharpValue>
                     </FlowDecision.Condition>
@@ -130,7 +121,7 @@
     <x:Reference>__ReferenceID2</x:Reference>
     <x:Reference>__ReferenceID0</x:Reference>
     <x:Reference>__ReferenceID3</x:Reference>
-    <sads:DebugSymbol.Symbol>d0pDOlxHaXRcQTJ2MTAuVHV0b3JpYWxcQTJ2MTAuU2l0ZVxBcHBfYXBwc1xXb3JrZmxvd1x3b3JrZmxvd3NcVGVzdDFfdjEueGFtbAs7A4YBDwIBAUMJThICASdRDVwWAgEYXxFwHgIBCXQXdGsCAQJLD0tgAgEvRg9GZAIBKFkTWX8CASBUE1RdAgEZYhdoFAIBEW0XbWsCAQo=</sads:DebugSymbol.Symbol>
+    <sads:DebugSymbol.Symbol>d0pDOlxHaXRcQTJ2MTAuVHV0b3JpYWxcQTJ2MTAuU2l0ZVxBcHBfYXBwc1xXb3JrZmxvd1x3b3JrZmxvd3NcVGVzdDFfdjEueGFtbAsyA30PAgEBOglFEgIBIkgNUxYCARVWEWceAgEIaxdrawIBAkIPQmACASk9Dz1kAgEjUBNQfwIBHEsTS10CARZZF18UAgEPZBdkawIBCQ==</sads:DebugSymbol.Symbol>
   </Flowchart>
   <sap2010:WorkflowViewState.ViewStateManager>
     <sap2010:ViewStateManager>
@@ -148,47 +139,47 @@
           </scg:Dictionary>
         </sap:WorkflowViewStateService.ViewState>
       </sap2010:ViewStateData>
-      <sap2010:ViewStateData Id="Request_3" sap:VirtualizedContainerService.HintSize="200,22">
+      <sap2010:ViewStateData Id="Request_1" sap:VirtualizedContainerService.HintSize="200,22">
         <sap:WorkflowViewStateService.ViewState>
           <scg:Dictionary x:TypeArguments="x:String, x:Object">
             <x:Boolean x:Key="IsExpanded">True</x:Boolean>
           </scg:Dictionary>
         </sap:WorkflowViewStateService.ViewState>
       </sap2010:ViewStateData>
-      <sap2010:ViewStateData Id="FlowDecision_2" sap:VirtualizedContainerService.HintSize="70,87">
+      <sap2010:ViewStateData Id="FlowDecision_1" sap:VirtualizedContainerService.HintSize="70,87">
         <sap:WorkflowViewStateService.ViewState>
           <scg:Dictionary x:TypeArguments="x:String, x:Object">
             <x:Boolean x:Key="IsExpanded">True</x:Boolean>
-            <av:Point x:Key="ShapeLocation">265,326.5</av:Point>
+            <av:Point x:Key="ShapeLocation">265,386.5</av:Point>
             <av:Size x:Key="ShapeSize">70,87</av:Size>
-            <av:PointCollection x:Key="FalseConnector">335,370 498.5,370 498.5,280 400,280</av:PointCollection>
+            <av:PointCollection x:Key="FalseConnector">335,430 430,430 430,320 400,320</av:PointCollection>
           </scg:Dictionary>
         </sap:WorkflowViewStateService.ViewState>
       </sap2010:ViewStateData>
-      <sap2010:ViewStateData Id="FlowStep_12">
+      <sap2010:ViewStateData Id="FlowStep_3">
         <sap:WorkflowViewStateService.ViewState>
           <scg:Dictionary x:TypeArguments="x:String, x:Object">
-            <av:Point x:Key="ShapeLocation">200,269</av:Point>
+            <av:Point x:Key="ShapeLocation">200,309</av:Point>
             <av:Size x:Key="ShapeSize">200,22</av:Size>
-            <av:PointCollection x:Key="ConnectorLocation">300,291 300,326.5</av:PointCollection>
+            <av:PointCollection x:Key="ConnectorLocation">300,331 300,386.5</av:PointCollection>
           </scg:Dictionary>
         </sap:WorkflowViewStateService.ViewState>
       </sap2010:ViewStateData>
-      <sap2010:ViewStateData Id="FlowStep_11">
+      <sap2010:ViewStateData Id="FlowStep_2">
         <sap:WorkflowViewStateService.ViewState>
           <scg:Dictionary x:TypeArguments="x:String, x:Object">
-            <av:Point x:Key="ShapeLocation">179,189</av:Point>
+            <av:Point x:Key="ShapeLocation">178.895,209.01953125</av:Point>
             <av:Size x:Key="ShapeSize">242,62</av:Size>
-            <av:PointCollection x:Key="ConnectorLocation">300,251 300,269</av:PointCollection>
+            <av:PointCollection x:Key="ConnectorLocation">299.895,271.01953125 299.895,301.01953125 300,301.01953125 300,309</av:PointCollection>
           </scg:Dictionary>
         </sap:WorkflowViewStateService.ViewState>
       </sap2010:ViewStateData>
-      <sap2010:ViewStateData Id="FlowStep_7">
+      <sap2010:ViewStateData Id="FlowStep_1">
         <sap:WorkflowViewStateService.ViewState>
           <scg:Dictionary x:TypeArguments="x:String, x:Object">
-            <av:Point x:Key="ShapeLocation">179,109</av:Point>
+            <av:Point x:Key="ShapeLocation">179,129</av:Point>
             <av:Size x:Key="ShapeSize">242,62</av:Size>
-            <av:PointCollection x:Key="ConnectorLocation">300,171 300,189</av:PointCollection>
+            <av:PointCollection x:Key="ConnectorLocation">300,191 299.895,191 299.895,209.01953125</av:PointCollection>
           </scg:Dictionary>
         </sap:WorkflowViewStateService.ViewState>
       </sap2010:ViewStateData>
@@ -198,11 +189,11 @@
             <x:Boolean x:Key="IsExpanded">False</x:Boolean>
             <av:Point x:Key="ShapeLocation">270,2.5</av:Point>
             <av:Size x:Key="ShapeSize">60,75</av:Size>
-            <av:PointCollection x:Key="ConnectorLocation">300,77.5 300,109</av:PointCollection>
+            <av:PointCollection x:Key="ConnectorLocation">300,77.5 300,129</av:PointCollection>
           </scg:Dictionary>
         </sap:WorkflowViewStateService.ViewState>
       </sap2010:ViewStateData>
-      <sap2010:ViewStateData Id="Apps.Crm.Workflows.TestTimer_v1_1" sap:VirtualizedContainerService.HintSize="654,716" />
+      <sap2010:ViewStateData Id="A2v10.Site.App_apps.Workflow.workflows.Test1_v2_1" sap:VirtualizedContainerService.HintSize="654,716" />
     </sap2010:ViewStateManager>
   </sap2010:WorkflowViewState.ViewStateManager>
 </Activity>
