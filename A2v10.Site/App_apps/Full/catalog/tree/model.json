@@ -1,0 +1,10 @@
+{
+	"schema":"dbo",
+	"model": "Agent2",
+	"actions": {
+		"index": {
+			"index": true,
+			"view": "index.view"
+		}
+	}
+}

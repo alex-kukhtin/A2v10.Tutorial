@@ -14,6 +14,9 @@
 @ChangePassword=Change password
 @SubstUser=Change user
 @User=User
+@Users=Users
+@Groups=Groups
+@Roles=Roles
 @OldPassword=Old password
 @NewPassword=New password
 @SetPassword=Set password
@@ -63,6 +66,7 @@
 @NewElement=New item
 @Cancel=Cancel
 @Select=Select
+@Filter=Filter
 ;
 @Code=Code
 @Date=Date
@@ -83,6 +87,11 @@
 @Error.EnterName=Enter item name
 @Error.DuplicateCode=Duplicate code
 @Error.Exception=Something went wrong as expected :-(
+@Error.Link=Go to homepage
 @Error.FileFormatException=File contains corrupted data
 @Error.DataReadOnly=The database is read-only
+@UIError.AccessDenied=UI:Access denied
+;
+@Placeholder.Search=Type text to search
+
 

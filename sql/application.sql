@@ -37,7 +37,8 @@ begin
 		(10,   1, N'Справочники', N'catalog',   null,   10),
 		(20,   1, N'Документы',   N'document',  null,   20),
 		(100, 10, N'Контрагенты', N'agent',   N'users', 10),
-		(110, 10, N'Товары', N'entity',   N'package', 20),
+		(110, 10, N'Товары',      N'entity',  N'package', 20),
+		(120, 10, N'Дерево',      N'tree',    N'report', 30),
 		(200, 20, N'Приходные накладные', N'income',   N'file-content', 10),
 		(210, 20, N'Inbox',      N'inbox',   N'workflow1', 20);
 			

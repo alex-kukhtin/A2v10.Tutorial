@@ -1,0 +1,8 @@
+﻿<Page xmlns="clr-namespace:A2v10.Xaml;assembly=A2v10.Xaml">
+	<Grid Columns="30rem,1*">
+		<TreeView Grid.Col="1" ItemsSource="{Bind Agents}" IconFolder="Folder" IconItem="File">
+			<TreeViewItem ItemsSource="{Bind Items}" Label="{Bind Name}"/>
+		</TreeView>
+	</Grid>
+	<CheckBox Value="{Bind Agents[0].$expanded}"></CheckBox>
+</Page>

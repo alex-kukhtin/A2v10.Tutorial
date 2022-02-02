@@ -192,7 +192,7 @@
     <Content Include="App_apps\Full\catalog\agent\model.json" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="App_apps\Full\catalog\agent\index.view.xaml">
+    <Content Include="App_apps\Full\catalog\tree\index.view.xaml">
       <SubType>Designer</SubType>
     </Content>
   </ItemGroup>
@@ -391,6 +391,7 @@
     <Content Include="App_apps\Workflow\catalog\entity\model.json" />
     <Content Include="App_apps\Workflow\document\income\model.json" />
     <Content Include="App_apps\Workflow\document\inbox\model.json" />
+    <Content Include="App_apps\Full\catalog\tree\model.json" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
@@ -446,6 +447,11 @@
   <ItemGroup>
     <Content Include="App_apps\Workflow\workflows\Test1_v1.xaml">
       <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_apps\Full\catalog\agent\index.view - Copy.xaml">
       <SubType>Designer</SubType>
     </Content>
   </ItemGroup>

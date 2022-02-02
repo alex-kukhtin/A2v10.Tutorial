@@ -1,6 +1,6 @@
 // Copyright © 2015-2019 Alex Kukhtin. All rights reserved.
 
-// 20190226-7444
+// 20190813-7521
 // app.js
 
 "use strict";
@@ -15,6 +15,9 @@
 
 	window.require = require;
 	window.component = component;
+
+	// amd typescript support
+	window.define = define;
 
 	let rootElem = document.querySelector('meta[name=rootUrl]');
 	window.$$rootUrl = rootElem ? rootElem.content || '' : '';
@@ -46,6 +49,15 @@
 	function nextToken() {
 		return '' + currentToken++;
 	}
+
+	function define(args, factory) {
+		let exports = {
+			default: undefined
+		};
+		factory(require, exports);
+		return exports.default;
+	}
+
 })();
 // Copyright © 2015-2018 Alex Kukhtin. All rights reserved.
 
@@ -77,10 +89,16 @@
 		if (!pElem)
 			return;
 		let parentRect = pElem.getBoundingClientRect();
-		if (elRect.top < parentRect.top)
-			el.scrollIntoView(true);
-		else if (elRect.bottom > parentRect.bottom)
-			el.scrollIntoView(false);
+		if (elRect.top < parentRect.top) {
+			//pElem.scrollTop -= parentRect.top - elRect.top + 1;
+			//el.scrollIntoView(true);
+			el.scrollIntoView({ block: 'nearest' });
+		}
+		else if (elRect.bottom > parentRect.bottom) {
+			//pElem.scrollTop += elRect.bottom - parentRect.bottom + 1;
+			el.scrollIntoView({ block: 'nearest' });
+			//el.scrollIntoView(false);
+		}
 	};
 
 
@@ -99,9 +117,9 @@
 
 
 
-// Copyright © 2015-2018 Alex Kukhtin. All rights reserved.
+// Copyright © 2015-2020 Alex Kukhtin. All rights reserved.
 
-/*20181204-7382*/
+/*20200722-7691*/
 /* platform/webvue.js */
 
 (function () {
@@ -114,10 +132,15 @@
 		Vue.nextTick(func);
 	}
 
+	function print() {
+		window.print();
+	}
+
 
 	app.modules['std:platform'] = {
 		set: set,
 		defer: defer,
+		print: print,
 		File: File, /*file ctor*/
 		performance: performance
 	};
@@ -126,9 +149,9 @@
 
 })();
 
-// Copyright © 2015-2019 Alex Kukhtin. All rights reserved.
+// Copyright © 2015-2020 Alex Kukhtin. All rights reserved.
 
-// 20190414-7485
+// 20200925-7708
 // services/utils.js
 
 app.modules['std:utils'] = function () {
@@ -147,6 +170,8 @@ app.modules['std:utils'] = function () {
 
 	const currencyFormat = new Intl.NumberFormat(numLocale, { minimumFractionDigits: 2, maximumFractionDigits: 6, useGrouping: true }).format;
 	const numberFormat = new Intl.NumberFormat(numLocale, { minimumFractionDigits: 0, maximumFractionDigits: 6, useGrouping: true }).format;
+
+	const utcdatRegEx = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/;
 
 	let numFormatCache = {};
 
@@ -179,6 +204,7 @@ app.modules['std:utils'] = function () {
 		isEqual: isEqual,
 		date: {
 			today: dateToday,
+			now: dateNow,
 			zero: dateZero,
 			parse: dateParse,
 			tryParse: dateTryParse,
@@ -193,14 +219,17 @@ app.modules['std:utils'] = function () {
 			endOfMonth: endOfMonth,
 			minDate: dateCreate(1901, 1, 1),
 			maxDate: dateCreate(2999, 12, 31),
-			fromDays: fromDays
+			fromDays: fromDays,
+			parseTime: timeParse
 		},
 		text: {
 			contains: textContains,
 			containsText: textContainsText,
 			sanitize,
 			splitPath,
-			capitalize
+			capitalize,
+			maxChars,
+			equalNoCase: stringEqualNoCase
 		},
 		currency: {
 			round: currencyRound,
@@ -236,8 +265,10 @@ app.modules['std:utils'] = function () {
 
 	function isEqual(o1, o2) {
 		if (o1 === o2) return true;
-		if (isDate(o1) && isDate(o2))
+		else if (isDate(o1) && isDate(o2))
 			return o1.getTime() === o2.getTime();
+		else if (isObjectExact(o1) && isObjectExact(o2))
+			return JSON.stringify(o1) === JSON.stringify(o2);
 		return false;
 	}
 
@@ -274,7 +305,7 @@ app.modules['std:utils'] = function () {
 			return '';
 		else if (isObject(obj))
 			return toJson(obj);
-		return obj + '';
+		return '' + obj;
 	}
 
 	function defaultValue(type) {
@@ -369,6 +400,19 @@ app.modules['std:utils'] = function () {
 		return formatFunc(num);
 	}
 
+	function formatDateWithFormat(date, format) {
+		if (!format)
+			return formatDate(date);
+		switch (format) {
+			case 'MMMM yyyy':
+				return capitalize(date.toLocaleDateString(locale.$Locale, { month: 'long', year: 'numeric' }));
+			default:
+				console.error('invalid date format: ' + format);
+		}
+		return formatDate(date);
+	}
+
+
 	function format(obj, dataType, opts) {
 		opts = opts || {};
 		if (!dataType)
@@ -383,6 +427,8 @@ app.modules['std:utils'] = function () {
 				}
 				if (dateIsZero(obj))
 					return '';
+				if (opts.format)
+					return formatDateWithFormat(obj, opts.format);
 				return formatDate(obj) + ' ' + formatTime(obj);
 			case "Date":
 				if (isString(obj))
@@ -393,12 +439,16 @@ app.modules['std:utils'] = function () {
 				}
 				if (dateIsZero(obj))
 					return '';
+				if (opts.format)
+					return formatDateWithFormat(obj, opts.format);
 				return formatDate(obj);
-			case "DateUrl":
+			case 'DateUrl':
 				if (dateIsZero(obj))
 					return '';
+				if (dateHasTime(obj))
+					return obj.toISOString();
 				return '' + obj.getFullYear() + pad2(obj.getMonth() + 1) + pad2(obj.getDate());
-			case "Time":
+			case 'Time':
 				if (!isDate(obj)) {
 					console.error(`Invalid Date for utils.format (${obj})`);
 					return obj;
@@ -406,13 +456,13 @@ app.modules['std:utils'] = function () {
 				if (dateIsZero(obj))
 					return '';
 				return formatTime(obj);
-			case "Period":
+			case 'Period':
 				if (!obj.format) {
 					console.error(`Invalid Period for utils.format (${obj})`);
 					return obj;
 				}
 				return obj.format('Date');
-			case "Currency":
+			case 'Currency':
 				if (!isNumber(obj)) {
 					obj = toNumber(obj);
 					//TODO:check console.error(`Invalid Currency for utils.format (${obj})`);
@@ -423,7 +473,7 @@ app.modules['std:utils'] = function () {
 				if (opts.format)
 					return formatNumber(obj, opts.format);
 				return currencyFormat(obj);
-			case "Number":
+			case 'Number':
 				if (!isNumber(obj)) {
 					obj = toNumber(obj);
 					//TODO:check console.error(`Invalid Number for utils.format (${obj})`);
@@ -465,20 +515,28 @@ app.modules['std:utils'] = function () {
 
 	function dateToday() {
 		let td = new Date();
-		td.setHours(0, 0, 0, 0);
-		td.setHours(0, -td.getTimezoneOffset(), 0, 0);
-		return td;
+		return new Date(Date.UTC(td.getFullYear(), td.getMonth(), td.getDate(), 0, 0, 0, 0));
+	}
+
+	function dateNow(second) {
+		let td = new Date();
+		let sec = second ? td.getSeconds() : 0;
+		return new Date(Date.UTC(td.getFullYear(), td.getMonth(), td.getDate(), td.getHours(), td.getMinutes(), sec, 0));
 	}
 
 	function dateZero() {
-		let td = new Date(0, 0, 1, 0, 0, 0, 0);
-		td.setHours(0, -td.getTimezoneOffset(), 0, 0);
+		let td = new Date(Date.UTC(0, 0, 1, 0, 0, 0, 0));
 		return td;
 	}
 
 	function dateTryParse(str) {
 		if (!str) return dateZero();
 		if (isDate(str)) return str;
+
+		if (utcdatRegEx.test(str)) {
+			return new Date(str);
+		}
+
 		let dt;
 		if (str.length === 8) {
 			dt = new Date(+str.substring(0, 4), +str.substring(4, 6) - 1, +str.substring(6, 8), 0, 0, 0, 0);
@@ -488,9 +546,7 @@ app.modules['std:utils'] = function () {
 			dt = new Date(str);
 		}
 		if (!isNaN(dt.getTime())) {
-			dt.setHours(0, 0, 0, 0);
-			dt.setHours(0, -dt.getTimezoneOffset(), 0, 0);
-			return dt;
+			return new Date(Date.UTC(dt.getFullYear(), dt.getMonth(), dt.getDate(), 0, 0, 0, 0));
 		}
 		return str;
 	}
@@ -498,15 +554,31 @@ app.modules['std:utils'] = function () {
 	function string2Date(str) {
 		try {
 			let dt = new Date(str);
-			dt.setHours(0, -dt.getTimezoneOffset(), 0, 0);
+			dt.setUTCHours(0, 0, 0, 0);
 			return dt;
 		} catch (err) {
 			return str;
 		}
 	}
 
-	function dateParse(str) {
+	function timeParse(str) {
 		str = str || '';
+		if (!str) return dateZero();
+		let seg = str.split(/[^\d]/).filter(x => x);
+		if (seg.length === 1) {
+			seg.push('0');
+		}
+		let h = Math.min(+seg[0], 23);
+		let m = Math.min(+seg[1], 59);
+		let td = new Date(0, 0, 1, h, m, 0, 0);
+		return td;
+	}
+
+	function dateParse(str, yearCutOff) {
+		str = str || '';
+		if (utcdatRegEx.test(str)) {
+			return new Date(str);
+		}
 		if (!str) return dateZero();
 		let today = dateToday();
 		let seg = str.split(/[^\d]/).filter(x => x);
@@ -516,19 +588,26 @@ app.modules['std:utils'] = function () {
 		} else if (seg.length === 2) {
 			seg.push('' + today.getFullYear());
 		}
+
+		let cutOffYear = function (year) {
+			let yco = yearCutOff || '+10';
+			let th = (yco.startsWith('+') || yco.startsWith('-')) ? (today.getFullYear() % 100 + parseInt(yco, 10)) : (+yco % 100);
+			return year <= th ? '20' : '19';
+		}
+
 		let normalizeYear = function (y) {
 			y = '' + y;
 			switch (y.length) {
-				case 2: y = '20' + y; break;
+				case 1: y = cutOffYear(y) + '0' + y; break;
+				case 2: y = cutOffYear(y) + y; break;
 				case 4: break;
 				default: y = today.getFullYear(); break;
 			}
 			return +y;
 		};
-		let td = new Date(+normalizeYear(seg[2]), +((seg[1] ? seg[1] : 1) - 1), +seg[0], 0, 0, 0, 0);
+		let td = new Date(Date.UTC(+normalizeYear(seg[2]), +((seg[1] ? seg[1] : 1) - 1), +seg[0], 0, 0, 0, 0));
 		if (isNaN(td.getDate()))
 			return dateZero();
-		td.setHours(0, -td.getTimezoneOffset(), 0, 0);
 		return td;
 	}
 
@@ -543,15 +622,18 @@ app.modules['std:utils'] = function () {
 		return dateEqual(d1, dateZero());
 	}
 
+	function dateHasTime(d1) {
+		if (!isDate(d1)) return false;
+		return d1.getUTCHours() !== 0 || d1.getUTCMinutes() !== 0 && d1.getUTCSeconds() !== 0;
+	}
+
 	function endOfMonth(dt) {
-		var dte = new Date(dt.getFullYear(), dt.getMonth() + 1, 0, 0, 0, 0);
-		dte.setHours(0, -dte.getTimezoneOffset(), 0, 0);
+		var dte = new Date(Date.UTC(dt.getFullYear(), dt.getMonth() + 1, 0, 0, 0, 0));
 		return dte;
 	}
 
 	function dateCreate(year, month, day) {
-		let dt = new Date(year, month - 1, day, 0, 0, 0, 0);
-		dt.setHours(0, -dt.getTimezoneOffset(), 0, 0);
+		let dt = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
 		return dt;
 	}
 
@@ -559,6 +641,10 @@ app.modules['std:utils'] = function () {
 		if (d1.getTime() > d2.getTime())
 			[d1, d2] = [d2, d1];
 		switch (unit) {
+			case "second":
+				return (d2 - d1) / 1000;
+			case "minute":
+				return +(((d2 - d1) / 1000) / 60).toFixed(0);
 			case "month":
 				let delta = 0;
 				if (d2.getDate() < d1.getDate())
@@ -582,17 +668,17 @@ app.modules['std:utils'] = function () {
 				let du = 1000 * 60 * 60 * 24;
 				return Math.floor((d2 - d1) / du);
 			case "year":
-			case 'year':
 				var dd = new Date(d1.getFullYear(), d2.getMonth(), d2.getDate(), d2.getHours(), d2.getMinutes(), d2.getSeconds(), d2.getMilliseconds());
-				return d2.getFullYear() - d1.getFullYear() + (dd < d1 ? (d2 > d1 ? -1 : 0) : (d2 < d1 ? 1 : 0));
+				let dy = dd < d1 ?
+					d2 > d1 ? -1 : 0 :
+					d2 < d1 ? 1  : 0;
+				return d2.getFullYear() - d1.getFullYear() + dy;
 		}
 		throw new Error('Invalid unit value for utils.date.diff');
 	}
 
 	function fromDays(days) {
-		let dt = new Date(1900, 0, days, 0, 0, 0, 0);
-		dt.setHours(0, -dt.getTimezoneOffset(), 0, 0);
-		return dt;
+		return new Date(Date.UTC(1900, 0, days, 0, 0, 0, 0));
 	}
 
 	function dateAdd(dt, nm, unit) {
@@ -607,11 +693,10 @@ app.modules['std:utils'] = function () {
 				// save day of month
 				let newMonth = dt.getMonth() + nm;
 				let day = dt.getDate();
-				var ldm = new Date(dt.getFullYear(), newMonth + 1, 0).getDate();
+				var ldm = new Date(Date.UTC(dt.getFullYear(), newMonth + 1, 0, 0, 0)).getDate();
 				if (day > ldm)
 					day = ldm;
-				var dtx = new Date(dt.getFullYear(), newMonth, day);
-				dtx.setHours(0, -dtx.getTimezoneOffset(), 0, 0);
+				var dtx = new Date(Date.UTC(dt.getFullYear(), newMonth, day, 0, 0, 0));
 				return dtx;
 			case 'day':
 				du = 1000 * 60 * 60 * 24;
@@ -655,6 +740,16 @@ app.modules['std:utils'] = function () {
 	function capitalize(text) {
 		if (!text) return '';
 		return text.charAt(0).toUpperCase() + text.slice(1);
+	}
+	function maxChars(text, length) {
+		text = '' + text || '';
+		if (text.length < length)
+			return text;
+		return text.substring(0, length - 1) + '\u2026' /*ellipsis*/;
+	}
+
+	function stringEqualNoCase(s1, s2) {
+		return (s1 || '').toLowerCase() === (s2 || '').toLowerCase();
 	}
 
 	function textContains(text, probe) {
@@ -868,7 +963,7 @@ app.modules['std:url'] = function () {
 	function parseUrlAndQuery(url, querySrc) {
 		let query = {};
 		for (let p in querySrc) {
-			if (p.startsWith('_')) continue;
+			if (p.startsWith('_') || p.startsWith('$')) continue;
 			query[p] = toUrl(querySrc[p]); // all values are string
 		}
 		let rv = { url: url, query: query };
@@ -954,7 +1049,7 @@ app.modules['std:url'] = function () {
 
 // Copyright © 2015-2019 Alex Kukhtin. All rights reserved.
 
-// 20190223-7441
+/*20191101-7575*/
 // services/period.js
 
 app.modules['std:period'] = function () {
@@ -1058,7 +1153,7 @@ app.modules['std:period'] = function () {
 			}
 		}
 		if (showCustom)
-			return 'Довільно';
+			return locale.$CustomPeriod;
 		let from = this.From;
 		let to = this.To;
 		return utils.format(from, 'Date') + ' - ' + (utils.format(to, 'Date') || '???');
@@ -1083,6 +1178,9 @@ app.modules['std:period'] = function () {
 		return this.normalize();
 	};
 
+	TPeriod.prototype.toJson = function () {
+		return JSON.stringify(this);
+	};
 
 	
 	return {
@@ -1237,9 +1335,9 @@ app.modules['std:period'] = function () {
 };
 
 
-// Copyright © 2015-2018 Alex Kukhtin. All rights reserved.
+// Copyright © 2015-2020 Alex Kukhtin. All rights reserved.
 
-// 20181019-7323
+// 20200725-7693
 /* services/modelinfo.js */
 
 app.modules['std:modelInfo'] = function () {
@@ -1247,10 +1345,12 @@ app.modules['std:modelInfo'] = function () {
 	return {
 		copyfromQuery: copyFromQuery,
 		get: getPagerInfo,
-		reconcile: reconcile
+		reconcile,
+		reconcileAll
 	};
 
 	function copyFromQuery(mi, q) {
+		if (!mi) return;
 		let psq = { PageSize: q.pageSize, Offset: q.offset, SortDir: q.dir, SortOrder: q.order, GroupBy: q.group };
 		for (let p in psq) {
 			mi[p] = psq[p];
@@ -1285,12 +1385,19 @@ app.modules['std:modelInfo'] = function () {
 			}
 		}
 	}
+
+	function reconcileAll(m) {
+		if (!m) return;
+		for (let p in m) {
+			reconcile(m[p]);
+		}
+	}
 };
 
 
 // Copyright © 2015-2019 Alex Kukhtin. All rights reserved.
 
-// 20190221-7439
+// 20190808-7517
 /* services/http.js */
 
 app.modules['std:http'] = function () {
@@ -1343,6 +1450,11 @@ app.modules['std:http'] = function () {
 					}
 					else
 						reject(xhr.responseText || xhr.statusText);
+				} else if (xhr.status === 473 /*non standard */) {
+					if (xhr.statusText === 'Unauthorized') {
+						// go to login page
+						window.location.assign('/');
+					}
 				}
 				else
 					reject(xhr.statusText);
@@ -1393,11 +1505,20 @@ app.modules['std:http'] = function () {
 	}
 
 	function load(url, selector, baseUrl) {
-		let fc = selector ? selector.firstElementChild : null;
-		if (fc && fc.__vue__) {
-			fc.__vue__.$destroy();
+		if (selector) {
+			let fc = selector.firstElementChild
+			if (fc && fc.__vue__) {
+				let ve = fc.__vue__;
+				ve.$destroy();
+				ve.$el.remove();
+				ve.$el = null;
+				fc.__vue__ = null;
+			}
+			selector.innerHTML = '';
 		}
+
 		return new Promise(function (resolve, reject) {
+			eventBus.$emit('beginLoad');
 			doRequest('GET', url)
 				.then(function (html) {
 					if (html.startsWith('<!DOCTYPE')) {
@@ -1420,7 +1541,10 @@ app.modules['std:http'] = function () {
 						let s = rdoc.scripts[i];
 						if (s.type === 'text/javascript') {
 							let newScript = document.createElement("script");
-							newScript.text = s.text;
+							if (s.src)
+								newScript.src = s.src;
+							else
+								newScript.text = s.text;
 							document.body.appendChild(newScript).parentNode.removeChild(newScript);
 						}
 					}
@@ -1436,11 +1560,13 @@ app.modules['std:http'] = function () {
 								eventBus.$emit('modalSetAttribites', dca, ve);
 						}
 					}
+					rdoc.body.remove();
 					resolve(true);
+					eventBus.$emit('endLoad');
 				})
 				.catch(function (error) {
-					alert(error);
-					resolve(false);
+					reject(error);
+					eventBus.$emit('endLoad');
 				});
 		});
 	}
@@ -1546,9 +1672,9 @@ app.modules['std:log'] = function () {
 	}
 };
 
-// Copyright © 2015-2018 Alex Kukhtin. All rights reserved.
+// Copyright © 2015-2019 Alex Kukhtin. All rights reserved.
 
-/*20180705-7241*/
+/*20191122-7587*/
 /*validators.js*/
 
 app.modules['std:validators'] = function () {
@@ -1569,15 +1695,21 @@ app.modules['std:validators'] = function () {
 	};
 
 	function validateStd(rule, val) {
-		switch (rule) {
+		switch (rule.valid) {
 			case 'notBlank':
 				return utils.notBlank(val);
 			case "email":
-				return validEmail(val);
+				return val === '' || EMAIL_REGEXP.test(val);
 			case "url":
-				return validUrl(val);
+				return val === '' || URL_REGEXP.test(val);
 			case "isTrue":
 				return val === true;
+			case "regExp":
+				if (!(rule.regExp instanceof RegExp)) {
+					console.error('rule.regExp is undefined or is not an regular expression');
+					return false;
+				}
+				return val === '' || rule.regExp.test(val);
 		}
 		console.error(`invalid std rule: '${rule}'`);
 		return true;
@@ -1619,7 +1751,7 @@ app.modules['std:validators'] = function () {
 				if (!rule.applyIf(item, val)) return;
 			}
 			if (utils.isString(rule)) {
-				if (!validateStd('notBlank', val))
+				if (!validateStd({ valid: 'notBlank' }, val))
 					retval.push({ msg: rule, severity: ERROR });
 			} else if (utils.isFunction(rule)) {
 				let vr = rule(item, val);
@@ -1629,7 +1761,7 @@ app.modules['std:validators'] = function () {
 					retval.push({ msg: vr.msg, severity: vr.severity || sev });
 				}
 			} else if (utils.isString(rule.valid)) {
-				if (!validateStd(rule.valid, val))
+				if (!validateStd(rule, val))
 					retval.push({ msg: rule.msg, severity: sev });
 			} else if (utils.isFunction(rule.valid)) {
 				if (rule.async) {
@@ -1709,15 +1841,6 @@ app.modules['std:validators'] = function () {
 			arr.push({ valid: 'notBlank', msg: rules });
 		let err = validateImpl(arr, item, val, du);
 		return err; // always array. may be defer
-	}
-
-
-	function validEmail(addr) {
-		return addr === '' || EMAIL_REGEXP.test(addr);
-	}
-
-	function validUrl(url) {
-		return url === '' || URL_REGEXP.test(url);
 	}
 };
 
@@ -2184,9 +2307,9 @@ Vue.component('a2-pager', {
 });
 
 
-/* Copyright © 2015-2019 Alex Kukhtin. All rights reserved.*/
+/* Copyright © 2015-2020 Alex Kukhtin. All rights reserved.*/
 
-// 20190412-7483
+/*20201017-7715*/
 // services/datamodel.js
 
 (function () {
@@ -2205,6 +2328,9 @@ Vue.component('a2-pager', {
 	const FLAG_VIEW = 1;
 	const FLAG_EDIT = 2;
 	const FLAG_DELETE = 4;
+	const FLAG_APPLY = 8;
+	const FLAG_UNAPPLY = 16;
+
 	const DEFAULT_PAGE_SIZE = 20;
 
 	const platform = require('std:platform');
@@ -2212,6 +2338,7 @@ Vue.component('a2-pager', {
 	const utils = require('std:utils');
 	const log = require('std:log', true);
 	const period = require('std:period');
+	const modelInfoTool = require('std:modelInfo');
 
 	let __initialized__ = false;
 
@@ -2253,9 +2380,12 @@ Vue.component('a2-pager', {
 	function ensureType(type, val) {
 		if (!utils.isDefined(val))
 			val = utils.defaultValue(type);
-		if (type === Number) {
+		if (type === Number)
 			return utils.toNumber(val);
-		}
+		else if (type === String)
+			return utils.toString(val);
+		else if (type === Date && !utils.isDate(val))
+			return utils.date.parse('' + val);
 		return val;
 	}
 
@@ -2319,8 +2449,14 @@ Vue.component('a2-pager', {
 				let eventWasFired = false;
 				let skipDirty = prop.startsWith('$$');
 				let ctor = this._meta_.props[prop];
-				if (ctor.type) ctor = ctor.type;
-				val = ensureType(ctor, val);
+				let isjson = false;
+				if (ctor.type) {
+					isjson = !!ctor.json;
+					ctor = ctor.type;
+				}
+				if (!isjson) {
+					val = ensureType(ctor, val);
+				}
 				if (val === this._src_[prop])
 					return;
 				let oldVal = this._src_[prop];
@@ -2338,7 +2474,7 @@ Vue.component('a2-pager', {
 					this._src_[prop] = val;
 				}
 				if (!skipDirty) // skip special properties
-					this._root_.$setDirty(true, this._path_);
+					this._root_.$setDirty(true, this._path_, prop);
 				if (this._lockEvents_) return; // events locked
 				if (eventWasFired) return; // was fired
 				let eventName = (this._path_ || 'Root') + '.' + prop + '.change';
@@ -2423,7 +2559,7 @@ Vue.component('a2-pager', {
 		defHidden(elem, PARENT, parent);
 		defHidden(elem, ERRORS, null, true);
 		defHidden(elem, '_lockEvents_', 0, true);
-		elem._uiprops_ = {};
+		elem._uiprops_ = {}; // observable!
 
 		let hasTemplProps = false;
 		const templ = elem._root_.$template;
@@ -2443,8 +2579,23 @@ Vue.component('a2-pager', {
 		if (path && path.endsWith(']'))
 			elem.$selected = false;
 
-		if (elem._meta_.$items)
+		if (elem._meta_.$items) {
 			elem.$expanded = false; // tree elem
+			elem.$collapsed = false; // sheet elem
+			elem.$level = 0;
+		}
+
+		elem.$lockEvents = function () {
+			this._lockEvents_ += 1;
+		};
+
+		elem.$unlockEvents = function () {
+			this._lockEvents_ -= 1;
+		};
+
+		defHiddenGet(elem, '$eventsLocked', function () {
+			return this._lockEvents_ > 0;
+		});
 
 		defPropertyGet(elem, '$valid', function () {
 			if (this._root_._needValidate_)
@@ -2512,6 +2663,28 @@ Vue.component('a2-pager', {
 			};
 		}
 
+		function setDefaults(root) {
+			if (!root.$template || !root.$template.defaults)
+				return;
+			for (let p in root.$template.defaults) {
+				let px = p.lastIndexOf('.');
+				if (px === -1)
+					continue;
+				let path = p.substring(0, px);
+				let prop = p.substring(px + 1);
+				if (prop.endsWith('[]'))
+					continue;
+				let def = root.$template.defaults[p];
+				let obj = utils.simpleEval(root, path);
+				if (obj.$isNew) {
+					if (utils.isFunction(def))
+						platform.set(obj, prop, def.call(root, obj, prop));
+					else
+						platform.set(obj, prop, def);
+				}
+			}
+		}
+
 		let constructEvent = ctorname + '.construct';
 		let _lastCaller = null;
 		let propForConstruct = path ? propFromPath(path) : '';
@@ -2530,6 +2703,7 @@ Vue.component('a2-pager', {
 				}
 			}
 			elem._setModelInfo_ = setRootModelInfo;
+			elem._setRuntimeInfo_ = setRootRuntimeInfo;
 			elem._findRootModelInfo = findRootModelInfo;
 			elem._saveSelections = saveSelections;
 			elem._restoreSelections = restoreSelections;
@@ -2537,6 +2711,7 @@ Vue.component('a2-pager', {
 			elem._needValidate_ = false;
 			elem._modelLoad_ = (caller) => {
 				_lastCaller = caller;
+				setDefaults(elem);
 				elem._fireLoad_();
 				__initialized__ = true;
 			};
@@ -2544,13 +2719,22 @@ Vue.component('a2-pager', {
 				platform.defer(() => {
 					let isRequery = elem.$vm.__isModalRequery();
 					elem.$emit('Model.load', elem, _lastCaller, isRequery);
-					elem._root_.$setDirty(false);
+					elem._root_.$setDirty(elem._root_.$isCopy ? true : false);
 				});
+			};
+			elem._fireUnload_ = () => {
+				elem.$emit('Model.unload', elem);
 			};
 			defHiddenGet(elem, '$readOnly', isReadOnly);
 			defHiddenGet(elem, '$stateReadOnly', isStateReadOnly);
 			defHiddenGet(elem, '$isCopy', isModelIsCopy);
+			defHiddenGet(elem, '$mainObject', mainObject);
+
 			elem._seal_ = seal;
+
+			elem._fireGlobalPeriodChanged_ = (period) => {
+				elem.$emit('GlobalPeriod.change', elem, period);
+			};
 		}
 		if (startTime) {
 			logtime('create root time:', startTime, false);
@@ -2560,6 +2744,7 @@ Vue.component('a2-pager', {
 
 	function seal(elem) {
 		Object.seal(elem);
+		if (!elem._meta_) return;
 		for (let p in elem._meta_.props) {
 			let ctor = elem._meta_.props[p];
 			if (ctor.type) ctor = ctor.type;
@@ -2603,6 +2788,14 @@ Vue.component('a2-pager', {
 		return false;
 	}
 
+	function mainObject() {
+		if ('$main' in this._meta_) {
+			let mainProp = this._meta_.$main;
+			return this[mainProp];
+		}
+		return null;
+	}
+
 	function isModelIsCopy() {
 		if ('__modelInfo' in this) {
 			let mi = this.__modelInfo;
@@ -2632,6 +2825,11 @@ Vue.component('a2-pager', {
 			return !this.$valid;
 		});
 
+		if (ctor.prototype._meta_.$cross)
+			defPropertyGet(arr, "$cross", function () {
+				return ctor.prototype._meta_.$cross;
+			});
+
 		createObjProperties(arr, arrctor);
 
 		let constructEvent = arrctor.name + '.construct';
@@ -2641,7 +2839,7 @@ Vue.component('a2-pager', {
 			return arr;
 		for (let i = 0; i < source.length; i++) {
 			arr[i] = new arr._elem_(source[i], dotPath, arr);
-			arr[i].$checked = false;
+			arr[i].__checked = false;
 		}
 		return arr;
 	}
@@ -2660,7 +2858,7 @@ Vue.component('a2-pager', {
 
 		arr.$new = function (src) {
 			let newElem = new this._elem_(src || null, this._path_ + '[]', this);
-			newElem.$checked = false;
+			newElem.__checked = false;
 			return newElem;
 		};
 
@@ -2726,14 +2924,24 @@ Vue.component('a2-pager', {
 			platform.defer(() => this.$loadLazy());
 		};
 
+		arr.$resetLazy = function () {
+			this.$empty();
+			if (this.$loaded)
+				this.$loaded = false;
+			return this;
+		};
+
 		arr.$loadLazy = function () {
+			if (!this.$isLazy())
+				return;
 			return new Promise((resolve, reject) => {
+				if (!this.$vm) return;
 				if (this.$loaded) { resolve(this); return; }
 				if (!this.$parent) { resolve(this); return; }
 				const meta = this.$parent._meta_;
 				if (!meta.$lazy) { resolve(this); return; }
 				let prop = propFromPath(this._path_);
-				if (!meta.$lazy.indexOf(prop) === -1) { resolve(this); return; }
+				if (meta.$lazy.indexOf(prop) === -1) { resolve(this); return; }
 				this.$vm.$loadLazy(this.$parent, prop).then(() => resolve(this));
 			});
 		};
@@ -2844,7 +3052,7 @@ Vue.component('a2-pager', {
 
 		arr.$clearSelected = function () {
 			let sel = this.$selected;
-			if (!sel) return; // already null
+			if (!sel) return this; // already null
 			sel.$selected = false;
 			emitSelect(this, null);
 			return this;
@@ -2876,7 +3084,7 @@ Vue.component('a2-pager', {
 
 		arr.$copy = function (src) {
 			if (this.$root.isReadOnly)
-				return;
+				return this;
 			this.$empty();
 			if (utils.isArray(src)) {
 				for (let i = 0; i < src.length; i++) {
@@ -2885,6 +3093,24 @@ Vue.component('a2-pager', {
 			}
 			return this;
 		};
+
+		arr.$sum = function (fn) {
+			return this.reduce((a, c) => a + fn(c), 0);
+		};
+
+		arr.$find = function (fc, thisArg) {
+			for (let i = 0; i < this.length; i++) {
+				let el = this[i];
+				if (fc.call(thisArg, el, i, this))
+					return el;
+				if ('$items' in el) {
+					let x = el.$items.$find(fc);
+					if (x)
+						return x;
+				}
+			}
+			return null;
+		}
 
 		arr.__fireChange__ = function (opts) {
 			let root = this.$root;
@@ -2918,6 +3144,11 @@ Vue.component('a2-pager', {
 			if (this._root_ && this._root_._host_)
 				return this._root_._host_.$ctrl;
 			return null;
+		});
+
+		defHiddenGet(obj, "$ready", function () {
+			if (!this.$vm) return true;
+			return !this.$vm.$isLoading;
 		});
 
 		obj.$isValid = function (props) {
@@ -2987,6 +3218,25 @@ Vue.component('a2-pager', {
 				return this[itmsName];
 			});
 		}
+		if (meta.$permissions) {
+			defHiddenGet(obj.prototype, "$permissions", function () {
+				let permName = this._meta_.$permissions;
+				if (!permName) return undefined;
+				var perm = this[permName];
+				if (this.$isNew && perm === 0) {
+					let mi = this.$ModelInfo;
+					if (mi && utils.isDefined(mi.Permissions))
+						perm = mi.Permissions;
+				}
+				return Object.freeze({
+					canView: !!(perm & FLAG_VIEW),
+					canEdit: !!(perm & FLAG_EDIT),
+					canDelete: !!(perm & FLAG_DELETE),
+					canApply: !!(perm & FLAG_APPLY),
+					canUnapply: !!(perm & FLAG_UNAPPLY)
+				});
+			});
+		}
 	}
 
 	function emitSelect(arr, item) {
@@ -3011,13 +3261,26 @@ Vue.component('a2-pager', {
 				// expand all parent items
 				let p = this._parent_._parent_;
 				while (p) {
-					p.$expanded = true;
-					p = p._parent_._parent_;
 					if (!p || p === this.$root)
 						break;
+					p.$expanded = true;
+					p = p._parent_._parent_;
 				}
 			}
 		};
+		Object.defineProperty(elem.prototype, '$checked', {
+			enumerable: true,
+			configurable: true, /* needed */
+			get() {
+				return this.__checked;
+			},
+			set(val) {
+				this.__checked = val;
+				let arr = this.$parent;
+				let checkEvent = arr._path_ + '[].check';
+				arr._root_.$emit(checkEvent, arr/*array*/, this);
+			}
+		});
 	}
 
 	function emit(event, ...arr) {
@@ -3049,7 +3312,7 @@ Vue.component('a2-pager', {
 			return null;
 		}
 		if (name in tml.delegates) {
-			return tml.delegates[name];
+			return tml.delegates[name].bind(this.$root);
 		}
 		console.error(`Delegate "${name}" not found in the template`);
 	}
@@ -3286,14 +3549,15 @@ Vue.component('a2-pager', {
 		//console.dir(allerrs);
 	}
 
-	function setDirty(val, path) {
+	function setDirty(val, path, prop) {
 		if (this.$root.$readOnly)
 			return;
 		if (path && path.toLowerCase().startsWith('query'))
 			return;
 		if (isNoDirty(this.$root))
 			return;
-		// TODO: template.options.skipDirty
+		if (path && prop && isSkipDirty(this.$root, `${path}.${prop}`))
+			return;
 		this.$dirty = val;
 	}
 
@@ -3331,6 +3595,15 @@ Vue.component('a2-pager', {
 		return opts && opts.noDirty;
 	}
 
+	function isSkipDirty(root, path) {
+		let t = root.$template;
+		const opts = t && t.options;
+		if (!opts) return false;
+		const sd = opts.skipDirty;
+		if (!sd || !utils.isArray(sd)) return false;
+		return sd.indexOf(path) !== -1;
+	}
+
 	function saveSelections() {
 		let root = this;
 		let t = root.$template;
@@ -3341,8 +3614,10 @@ Vue.component('a2-pager', {
 		let result = {};
 		for (let p of ps) {
 			let arr = utils.simpleEval(root, p);
-			if (utils.isArray(arr)) {
-				result[p] = arr.$selectedIndex;
+			if ('$selected' in arr) {
+				let sel = arr.$selected;
+				if (sel)
+					result[p] = sel.$id;
 			}
 		}
 		return result;
@@ -3354,14 +3629,16 @@ Vue.component('a2-pager', {
 		let root = this;
 		for (let p in sels) {
 			let arr = utils.simpleEval(root, p);
-			let si = sels[p];
-			if (utils.isArray(arr) && si >= 0 && si < arr.length) {
-				arr[si].$select();
+			let selId = sels[p];
+			if ('$find' in arr) {
+				let se = arr.$find(x => x.$id === selId);
+				if (se)
+					se.$select();
 			}
 		}
 	}
 
-	function merge(src, afterSave, existsOnly) {
+	function merge(src, checkBindOnce, existsOnly) {
 		let oldId = this.$id__;
 		try {
 			if (src === null)
@@ -3370,7 +3647,7 @@ Vue.component('a2-pager', {
 			this._lockEvents_ += 1;
 			for (var prop in this._meta_.props) {
 				if (prop.startsWith('$$')) continue; // always skip
-				if (afterSave && isSkipMerge(this._root_, prop)) continue;
+				if (checkBindOnce && isSkipMerge(this._root_, prop)) continue;
 				let ctor = this._meta_.props[prop];
 				if (ctor.type) ctor = ctor.type;
 				let trg = this[prop];
@@ -3409,6 +3686,7 @@ Vue.component('a2-pager', {
 			this._root_._needValidate_ = true;
 			this._lockEvents_ -= 1;
 		}
+		if (this.$parent._lockEvents_) return this; // may be custom lock
 		let newId = this.$id__;
 		let fireChange = false;
 		if (utils.isDefined(newId) && utils.isDefined(oldId))
@@ -3418,6 +3696,7 @@ Vue.component('a2-pager', {
 			let eventName = this._path_ + '.change';
 			this._root_.$emit(eventName, this.$parent, this, this, propFromPath(this._path_));
 		}
+		return this;
 	}
 
 	function implementRoot(root, template, ctors) {
@@ -3432,6 +3711,7 @@ Vue.component('a2-pager', {
 		root.prototype._validate_ = validate;
 		root.prototype._validateAll_ = validateAll;
 		root.prototype.$forceValidate = forceValidateAll;
+		root.prototype.$destroy = destroyRoot;
 		// props cache for t.construct
 		if (!template) return;
 		let xProp = {};
@@ -3467,13 +3747,45 @@ Vue.component('a2-pager', {
 		return obj;
 	}
 
-	function setRootModelInfo(item, data) {
+	function setRootModelInfo(elem, data) {
 		if (!data.$ModelInfo) return;
-		let elem = item;
 		for (let p in data.$ModelInfo) {
 			if (!elem) elem = this[p];
 			elem.$ModelInfo = checkPeriod(data.$ModelInfo[p]);
+
+			elem.$ModelInfo.$setFilter = function (prop, val) {
+				if (period.isPeriod(val))
+					this.Filter[prop].assign(val);
+				else
+					this.Filter[prop] = val;
+			};
+
 			return; // first element only
+		}
+	}
+
+	function setRootRuntimeInfo(runtime) {
+		if (!runtime) return;
+		if (runtime.$cross) {
+			for (let p in this) {
+				if (p.startsWith("$") || p.startsWith('_')) continue;
+				let ta = this[p];
+				if (ta._elem_ && ta.$cross) {
+					for (let x in runtime.$cross) {
+						if (ta._elem_.name != x) continue;
+						let t = ta.$cross;
+						let s = runtime.$cross[x];
+						for (let p in t) {
+							let ta = t[p];
+							let sa = s[p];
+							if (ta && sa)
+								ta.splice(0, ta.length, ...sa);
+							else if (ta && !sa)
+								ta.splice(0, ta.length);
+						}
+					}
+				}
+			}
 		}
 	}
 
@@ -3484,9 +3796,15 @@ Vue.component('a2-pager', {
 		};
 		let mi = rawData.$ModelInfo;
 		if (!mi) return;
+		modelInfoTool.reconcileAll(mi);
 		for (let p in mi) {
 			root[p].$ModelInfo = checkPeriod(mi[p]);
 		}
+	}
+
+	function destroyRoot() {
+		this._host_.$viewModel = null;
+		this._host_ = null;
 	}
 
 	app.modules['std:datamodel'] = {
@@ -3526,9 +3844,9 @@ Vue.component('a2-pager', {
 
 
 
-// Copyright © 2015-2019 Alex Kukhtin. All rights reserved.
+// Copyright © 2015-2020 Alex Kukhtin. All rights reserved.
 
-// 20190402-7475
+// 20200903-7705
 /*components/include.js*/
 
 (function () {
@@ -3536,6 +3854,7 @@ Vue.component('a2-pager', {
 	const http = require('std:http');
 	const urlTools = require('std:url');
 	const eventBus = require('std:eventBus');
+	const utils = require('std:utils');
 
 	function _destroyElement(el) {
 		let fc = el.firstElementChild;
@@ -3547,6 +3866,7 @@ Vue.component('a2-pager', {
 		if (vue && vue.$marker()) {
 			vue.$destroy();
 		}
+		el.__vue__ = null;
 	}
 
 	Vue.component('include', {
@@ -3577,7 +3897,9 @@ Vue.component('a2-pager', {
 				if (this.currentUrl) {
 					// Do not set loading. Avoid blinking
 					this.__destroy();
-					http.load(this.currentUrl, this.$el).then(this.loaded);
+					http.load(this.currentUrl, this.$el)
+						.then(this.loaded)
+						.catch(this.error);
 				}
 			},
 			__destroy() {
@@ -3589,6 +3911,21 @@ Vue.component('a2-pager', {
 				setTimeout(() => {
 					this.requery();
 				}, 1);
+			},
+			error(msg) {
+				msg = msg || '';
+				if (this.insideDialog)
+					eventBus.$emit('modalClose', false);
+				if (msg.indexOf('UI:') === 0) {
+					let dlgData = {
+						promise: null, data: {
+							message: msg.substring(3).replace('\\n', '\n'),
+							style: 'alert'
+						}
+					};
+					eventBus.$emit('confirm', dlgData);
+				} else
+					alert(msg);
 			}
 		},
 		computed: {
@@ -3600,7 +3937,9 @@ Vue.component('a2-pager', {
 			//console.warn('include has been mounted');
 			if (this.src) {
 				this.currentUrl = this.src;
-				http.load(this.src, this.$el).then(this.loaded);
+				http.load(this.src, this.$el)
+					.then(this.loaded)
+					.catch(this.error);
 			}
 		},
 		destroyed() {
@@ -3627,7 +3966,9 @@ Vue.component('a2-pager', {
 					this.loading = true; // hides the current view
 					this.currentUrl = newUrl;
 					this.__destroy();
-					http.load(newUrl, this.$el).then(this.loaded);
+					http.load(newUrl, this.$el)
+						.then(this.loaded)
+						.catch(this.error);
 				}
 			},
 			needReload(val) {
@@ -3642,7 +3983,8 @@ Vue.component('a2-pager', {
 		template: '<div class="a2-include"></div>',
 		props: {
 			source: String,
-			arg: undefined
+			arg: undefined,
+			dat: undefined
 		},
 		data() {
 			return {
@@ -3658,32 +4000,42 @@ Vue.component('a2-pager', {
 			},
 			makeUrl() {
 				let arg = this.arg || '0';
-				return urlTools.combine('_page', this.source, arg);
+				let url = urlTools.combine('_page', this.source, arg);
+				if (this.dat)
+					url += urlTools.makeQueryString(this.dat);
+				return url;
 			},
 			load() {
 				let url = this.makeUrl();
 				this.__destroy();
-				http.load(url, this.$el).then(this.loaded);
+				http.load(url, this.$el)
+					.then(this.loaded)
+					.catch(this.error);
 			}
 		},
 		watch: {
 			source(newVal, oldVal) {
-				//console.warn(`source changed ${newVal}, ${oldVal}`);
+				if (utils.isEqual(newVal, oldVal)) return;
 				this.needLoad += 1;
 			},
 			arg(newVal, oldVal) {
-				//console.warn(`arg changed ${newVal}, ${oldVal}`);
+				if (utils.isEqual(newVal, oldVal)) return;
+				this.needLoad += 1;
+			},
+			dat(newVal, oldVal) {
+				if (utils.isEqual(newVal, oldVal)) return;
 				this.needLoad += 1;
 			},
 			needLoad() {
-				//console.warn(`load iteration: ${this.needLoad}`);
 				this.load();
 			}
 		},
 		mounted() {
 			if (this.source) {
 				this.currentUrl = this.makeUrl(this.source);
-				http.load(this.currentUrl, this.$el).then(this.loaded);
+				http.load(this.currentUrl, this.$el)
+					.then(this.loaded)
+					.catch(this.error);
 			}
 		},
 		destroyed() {
@@ -3691,9 +4043,9 @@ Vue.component('a2-pager', {
 		}
 	});
 })();
-// Copyright © 2015-2019 Alex Kukhtin. All rights reserved.
+// Copyright © 2015-2020 Alex Kukhtin. All rights reserved.
 
-// 20190305-7456
+// 20200129-7623
 // components/modal.js
 
 
@@ -3704,7 +4056,7 @@ Vue.component('a2-pager', {
 	const utils = require('std:utils');
 
 	const modalTemplate = `
-<div class="modal-window" @keydown.tab="tabPress" :class="mwClass">
+<div class="modal-window modal-animation-window" @keydown.tab="tabPress" :class="mwClass">
 	<include v-if="isInclude" class="modal-body" :src="dialog.url" :done="loaded" :inside-dialog="true"></include>
 	<div v-else class="modal-body">
 		<div class="modal-header" v-drag-window><span v-text="title"></span><button ref='btnclose' class="btnclose" @click.prevent="modalClose(false)">&#x2715;</button></div>
@@ -3737,12 +4089,22 @@ Vue.component('a2-pager', {
 						mw.style.width = '800px'; // from less
 						break;
 					case 'modal-small':
-						mw.style.width = '300px'; // from less
+						mw.style.width = '350px'; // from less
 						break;
 				}
+				if (binding.value.minWidth)
+					mw.style.minWidth = binding.value.minWidth;
 			}
 		}
 	};
+
+	const maximizeComponent = {
+		inserted(el, binding) {
+			let mw = el.closest('.modal-window');
+			if (mw && binding.value)
+				mw.setAttribute('maximize', 'true');
+		}
+	}
 
 	const dragDialogDirective = {
 		inserted(el, binding) {
@@ -3801,6 +4163,8 @@ Vue.component('a2-pager', {
 	Vue.directive('drag-window', dragDialogDirective);
 
 	Vue.directive('modal-width', setWidthComponent);
+
+	Vue.directive('maximize', maximizeComponent);
 
 	const modalComponent = {
 		template: modalTemplate,
@@ -3881,7 +4245,7 @@ Vue.component('a2-pager', {
 				return !!this.dialog.url;
 			},
 			mwClass() {
-				return this.modalCreated ? 'loaded' : null;
+				return this.modalCreated ? 'loaded' : '';
 			},
 			hasIcon() {
 				return !!this.dialog.style;
@@ -3912,13 +4276,9 @@ Vue.component('a2-pager', {
 				if (this.dialog.buttons)
 					return this.dialog.buttons;
 				else if (this.dialog.style === 'alert')
-					return [{ text: okText, result: false, tabindex: 1 }];
-				else if (this.dialog.style === 'alert-ok') {
-					this.dialog.style = 'alert';
 					return [{ text: okText, result: true, tabindex: 1 }];
-				}
 				else if (this.dialog.style === 'info')
-					return [{ text: okText, result: false, tabindex:1 }];
+					return [{ text: okText, result: true, tabindex:1 }];
 				return [
 					{ text: okText, result: true, tabindex:2 },
 					{ text: cancelText, result: false, tabindex:1 }
@@ -3942,9 +4302,31 @@ Vue.component('a2-pager', {
 
 	app.components['std:modal'] = modalComponent;
 })();
-// Copyright © 2015-2018 Alex Kukhtin. All rights reserved.
+// Copyright © 2015-2020 Alex Kukhtin. All rights reserved.
 
-// 20180416-7158
+// 20200819-7703
+// components/waitcursor.js
+
+
+(function () {
+	/* doesn't work without load-indicator for some reason */
+	const waitCursor = {
+		template: `<div class="wait-cursor" v-if="visible()"><div class="spinner"/></div>`,
+		props: {
+			ready: Boolean
+		},
+		methods: {
+			visible() {
+				return !this.ready;
+			}
+		}
+	};
+
+	Vue.component("wait-cursor", waitCursor);
+})();
+// Copyright © 2015-2019 Alex Kukhtin. All rights reserved.
+
+// 20190610-7499
 // components/toastr.js
 
 
@@ -3963,7 +4345,7 @@ Vue.component('a2-pager', {
 	const toastrTemplate = `
 <div class="toastr-stack" >
 	<transition-group name="list" tag="ul">
-		<a2-toast v-for="(t,k) in items" :key="k" :toast="t"></a2-toast>
+		<a2-toast v-for="(t, k) in items":toast="t" :key="t.$index"></a2-toast>
 	</transition-group>
 </div>
 `;
@@ -4252,7 +4634,6 @@ Vue.component('a2-pager', {
 
 			$reload(args) {
 				//console.dir('$reload was called for' + this.$baseUrl);
-				//debugger;
 				let self = this;
 				if (utils.isArray(args) && args.$isLazy()) {
 					// reload lazy
@@ -4502,6 +4883,432 @@ Vue.component('a2-pager', {
 
 	app.components['standaloneController'] = standalone;
 })();
+// Copyright © 2020 Alex Kukhtin. All rights reserved.
+
+/*20200604-7671*/
+/* controllers/navmenu.js */
+
+(function () {
+
+	const platform = require('std:platform');
+	const urlTools = require('std:url');
+
+
+	function isSeparatePage(pages, seg) {
+		if (!seg || !pages) return false;
+		return pages.indexOf(seg + ',') !== -1;
+	}
+
+	function findMenu(menu, func, parentMenu) {
+		if (!menu)
+			return null;
+		for (let i = 0; i < menu.length; i++) {
+			let itm = menu[i];
+			if (func(itm))
+				return itm;
+			if (itm.Menu) {
+				if (parentMenu)
+					parentMenu.Url = itm.Url;
+				let found = findMenu(itm.Menu, func);
+				if (found) {
+					platform.set(itm, '$expanded', true);
+					return found;
+				}
+			}
+		}
+		return null;
+	}
+
+	function makeMenuUrl(menu, url, opts) {
+		opts = opts || {};
+		url = urlTools.combine(url).toLowerCase();
+		let sUrl = url.split('/');
+		if (sUrl.length >= 4)
+			return url; // full qualified
+		let routeLen = sUrl.length;
+		let seg1 = sUrl[1];
+		if (seg1 === 'app')
+			return url; // app
+		if (opts && isSeparatePage(opts.pages, seg1))
+			return url; // separate page
+		let am = null;
+		if (seg1)
+			am = menu.find((mi) => mi.Url === seg1);
+		if (!am) {
+			// no segments - find first active menu
+			let parentMenu = { Url: '' };
+			am = findMenu(menu, (mi) => mi.Url && !mi.Menu, parentMenu);
+			if (am) {
+				opts.title = am.Name;
+				return urlTools.combine(url, parentMenu.Url, am.Url);
+			}
+		} else if (am && !am.Menu) {
+			opts.title = am.Name;
+			return url; // no sub menu
+		}
+		url = urlTools.combine(seg1);
+		let seg2 = sUrl[2];
+		if (!seg2 && opts.seg2)
+			seg2 = opts.seg2; // may be
+		if (!seg2) {
+			// find first active menu in am.Menu
+			am = findMenu(am.Menu, (mi) => mi.Url && !mi.Menu);
+		} else {
+			// find current active menu in am.Menu
+			am = findMenu(am.Menu, (mi) => mi.Url === seg2);
+		}
+		if (am) {
+			opts.title = am.Name;
+			return urlTools.combine(url, am.Url);
+		}
+		return url; //TODO: ????
+	}
+
+
+
+	app.components['std:navmenu'] = {
+		findMenu,
+		makeMenuUrl,
+		isSeparatePage
+	};
+})();	
+// Copyright © 2020 Alex Kukhtin. All rights reserved.
+
+/*20200611-7672*/
+/* controllers/navbar.js */
+
+(function () {
+
+	const locale = window.$$locale;
+	const menu = component('std:navmenu');
+	const eventBus = require('std:eventBus');
+	const period = require('std:period');
+	const store = component('std:store');
+	const urlTools = require('std:url');
+	const http = require('std:http');
+
+	// a2-nav-bar
+	const a2NavBar = {
+		template: `
+<ul class="nav-bar">
+	<li v-for="(item, index) in menu" :key="index" :class="{active : isActive(item)}">
+		<a :href="itemHref(item)" tabindex="-1" v-text="item.Name" @click.prevent="navigate(item)"></a>
+	</li>
+	<li class="aligner"/>
+	<div class="nav-global-period" v-if="hasPeriod">
+		<a2-period-picker class="drop-bottom-right pp-hyperlink pp-navbar" 
+			display="namedate" :callback="periodChanged" prop="period" :item="that"/>
+	</div>
+	<li v-if="hasHelp()" :title="locale.$Help"><a :href="helpHref()" class="btn-help" rel="help" aria-label="Help" @click.prevent="showHelp()"><i class="ico ico-help"></i></a></li>
+</ul>
+`,
+		props: {
+			menu: Array,
+			period: period.constructor,
+			isNavbarMenu: Boolean
+		},
+		computed: {
+			seg0: () => store.getters.seg0,
+			seg1: () => store.getters.seg1,
+			locale() { return locale; },
+			hasPeriod() { return !!this.period; },
+			that() { return this; }
+		},
+		methods: {
+			isActive(item) {
+				return this.seg0 === item.Url;
+			},
+			isActive2(item) {
+				return this.seg1 === item.Url;
+			},
+			itemHref: (item) => '/' + item.Url,
+			navigate(item) {
+				if (this.isActive(item))
+					return;
+				let storageKey = 'menu:' + urlTools.combine(window.$$rootUrl, item.Url);
+				let savedUrl = localStorage.getItem(storageKey) || '';
+				if (savedUrl && !menu.findMenu(item.Menu, (mi) => mi.Url === savedUrl)) {
+					// saved segment not found in current menu
+					savedUrl = '';
+				}
+				let opts = { title: null, seg2: savedUrl };
+				let url = menu.makeMenuUrl(this.menu, item.Url, opts);
+				this.$store.commit('navigate', { url: url, title: opts.title });
+			},
+			showHelp() {
+				window.open(this.helpHref(), "_blank");
+			},
+			helpHref() {
+				let am = this.menu.find(x => this.isActive(x));
+				if (am && am.Menu) {
+					let am2 = am.Menu.find(x => this.isActive2(x));
+					if (am2 && am2.Help)
+						return urlTools.helpHref(am2.Help);
+				}
+				if (am && am.Help)
+					return urlTools.helpHref(am.Help);
+				return urlTools.helpHref('');
+			},
+			hasHelp() {
+				if (!this.menu) return false;
+				let am = this.menu.find(x => this.isActive(x));
+				return am && am.Help;
+			},
+			periodChanged(period) {
+				// post to shell
+				http.post('/_application/setperiod', period.toJson())
+					.then(() => {
+						eventBus.$emit('globalPeriodChanged', period);
+					})
+					.catch((err) => {
+						alert(err);
+					});
+			}
+		}
+	};
+
+	// a2-nav-bar-page
+	const a2NavBarPage = {
+		template: `
+<div class="menu-navbar-overlay" @click.stop=closeNavMenu>
+<div class="menu-navbar" :class="{show:visible}">
+<div class="menu-navbar-top">
+	<a href='' class=menu-navbar-back @click.stop.prevent=closeNavMenu><i class="ico ico-grid2"></i></a>
+	<h2 v-text=title></h2>
+</div>
+<ul class=menu-navbar-list>
+	<li v-for="(item, index) in menu" :key=index>
+		<a class="menu-navbar-link" :href="itemHref(item)" @click.prevent="navigate(item)" :class="{active : isActive(item)}">
+			<i class="ico" :class=icoClass(item)></i>
+			<span v-text="item.Name"></span>
+		</a>
+	</li>
+</ul>
+<div class="aligner"/>
+<a class=powered-by-a2v10 href="https://a2v10.com" rel=noopener target=_blank><i class="ico ico-a2logo"></i> Powered by A2v10</a>
+</div></div>
+`,
+		props: {
+			menu: Array,
+			isNavbarMenu: Boolean,
+			title:String
+		},
+		data() {
+			return {
+				visible: false
+			};
+		},
+		computed: {
+			seg0: () => store.getters.seg0,
+			seg1: () => store.getters.seg1,
+			locale() { return locale; },
+			that() { return this; }
+		},
+		methods: {
+			isActive(item) {
+				return this.seg0 === item.Url;
+			},
+			isActive2(item) {
+				return this.seg1 === item.Url;
+			},
+			itemHref: (item) => '/' + item.Url,
+			icoClass(item) {
+				return item.Icon ? 'ico-' + item.Icon : 'ico-empty';
+			},
+			navigate(item) {
+				if (this.isActive(item))
+					return;
+				this.closeNavMenu();
+				let storageKey = 'menu:' + urlTools.combine(window.$$rootUrl, item.Url);
+				let savedUrl = localStorage.getItem(storageKey) || '';
+				if (savedUrl && !menu.findMenu(item.Menu, (mi) => mi.Url === savedUrl)) {
+					// saved segment not found in current menu
+					savedUrl = '';
+				}
+				let opts = { title: null, seg2: savedUrl };
+				let url = menu.makeMenuUrl(this.menu, item.Url, opts);
+				this.$store.commit('navigate', { url: url, title: opts.title });
+			},
+			closeNavMenu() {
+				this.visible = false;
+				eventBus.$emit('clickNavMenu', false);
+			}
+		},
+		mounted() {
+			setTimeout(() => {
+				this.visible = true;
+			}, 5);
+		}
+	};
+
+	app.components['std:navbar'] = {
+		standardNavBar: a2NavBar,
+		pageNavBar: a2NavBarPage
+	};
+})();	
+// Copyright © 2020 Alex Kukhtin. All rights reserved.
+
+/*20200611-7673*/
+/* controllers/sidebar.js */
+
+(function () {
+
+	const menu = component('std:navmenu');
+	const store = component('std:store');
+	const urlTools = require('std:url');
+	const htmlTools = require('std:html');
+
+	const UNKNOWN_TITLE = 'unknown title';
+
+	const sideBarBase = {
+		props: {
+			menu: Array,
+			mode: String
+		},
+		computed: {
+			seg0: () => store.getters.seg0,
+			seg1: () => store.getters.seg1,
+			sideMenu() {
+				let top = this.topMenu;
+				return top ? top.Menu : null;
+			},
+			topMenu() {
+				let seg0 = this.seg0;
+				return menu.findMenu(this.menu, (mi) => mi.Url === seg0);
+			}
+		},
+		methods: {
+			isActive(item) {
+				let isActive = this.seg1 === item.Url;
+				if (isActive)
+					htmlTools.updateDocTitle(item.Name);
+				return isActive;
+			},
+			isGroup(item) {
+				if (!item.Params) return false;
+				try {
+					return JSON.parse(item.Params).group || false;
+				} catch (err) {
+					return false;
+				}
+			},
+			navigate(item) {
+				if (this.isActive(item))
+					return;
+				if (!item.Url) return;
+				let top = this.topMenu;
+				if (top) {
+					let url = urlTools.combine(top.Url, item.Url);
+					if (item.Url.indexOf('/') === -1) {
+						// save only simple path
+						try {
+							// avoid EDGE error QuotaExceeded
+							localStorage.setItem('menu:' + urlTools.combine(window.$$rootUrl, top.Url), item.Url);
+						}
+						catch (e) {
+							// do nothing
+						}
+					}
+					this.$store.commit('navigate', { url: url, title: item.Name });
+				}
+				else
+					console.error('no top menu found');
+			},
+			itemHref(item) {
+				let top = this.topMenu;
+				if (top) {
+					return urlTools.combine(top.Url, item.Url);
+				}
+				return undefined;
+			},
+			toggle() {
+				this.$parent.sideBarCollapsed = !this.$parent.sideBarCollapsed;
+				try {
+					// avoid EDGE error QuotaExceeded
+					localStorage.setItem('sideBarCollapsed', this.$parent.sideBarCollapsed);
+				}
+				catch (e) {
+					// do nothing
+				}
+			}
+		}
+	};
+
+	const a2SideBar = {
+		//TODO: 
+		// 1. various menu variants
+		// 2. folderSelect as function 
+		template: `
+<div :class="cssClass">
+	<a href role="button" class="ico collapse-handle" @click.prevent="toggle"></a>
+	<div class="side-bar-body" v-if="bodyIsVisible">
+		<tree-view :items="sideMenu" :is-active="isActive" :is-group="isGroup" :click="navigate" :get-href="itemHref"
+			:options="{folderSelect: folderSelect, label: 'Name', title: 'Description',
+			subitems: 'Menu', expandAll:true,
+			icon:'Icon', wrapLabel: true, hasIcon: true}">
+		</tree-view>
+	</div>
+	<div v-else class="side-bar-title" @click.prevent="toggle">
+		<span class="side-bar-label" v-text="title"></span>
+	</div>
+</div>
+`,
+		mixins: [sideBarBase],
+		computed: {
+			bodyIsVisible() {
+				return !this.$parent.sideBarCollapsed || this.compact;
+			},
+			compact() {
+				return this.mode === 'Compact';
+			},
+			title() {
+				let sm = this.sideMenu;
+				if (!sm)
+					return UNKNOWN_TITLE;
+				let seg1 = this.seg1;
+				let am = menu.findMenu(sm, (mi) => mi.Url === seg1);
+				if (am)
+					return am.Name || UNKNOWN_TITLE;
+				return UNKNOWN_TITLE;
+			},
+			cssClass() {
+				let cls = 'side-bar';
+				if (this.compact)
+					cls += '-compact';
+				return cls + (this.$parent.sideBarCollapsed ? ' collapsed' : ' expanded');
+			}
+		},
+		methods: {
+			folderSelect(item) {
+				return !!item.Url;
+			}
+		}
+	};
+
+	const a2TabSideBar = {
+		template: `
+<div class="side-bar-top">
+	<div class="a2-tab-bar">
+		<div v-for="mi in topMenu.Menu" class="a2-tab-bar-item">
+			<a :href="itemHref(mi)" @click.stop.prevent="navigate(mi)" v-text=mi.Name class="a2-tab-button" :class="{active: isActive(mi)}"></a>
+		</div>
+	</div>
+</div>
+`,
+		mixins: [sideBarBase],
+		computed: {
+		},
+		methods: {
+		}
+	};
+
+
+	app.components['std:sidebar'] = {
+		standardSideBar: a2SideBar,
+		compactSideBar: a2SideBar,
+		tabSideBar: a2TabSideBar
+	};
+})();	
 // Copyright © 2015-2018 Alex Kukhtin. All rights reserved.
 
 // 20181108-7350

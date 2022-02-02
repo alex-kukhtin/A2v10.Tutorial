@@ -1,6 +1,6 @@
 // Copyright © 2015-2019 Alex Kukhtin. All rights reserved.
 
-// 20190226-7444
+// 20190813-7521
 // app.js
 
 "use strict";
@@ -15,6 +15,9 @@
 
 	window.require = require;
 	window.component = component;
+
+	// amd typescript support
+	window.define = define;
 
 	let rootElem = document.querySelector('meta[name=rootUrl]');
 	window.$$rootUrl = rootElem ? rootElem.content || '' : '';
@@ -46,6 +49,15 @@
 	function nextToken() {
 		return '' + currentToken++;
 	}
+
+	function define(args, factory) {
+		let exports = {
+			default: undefined
+		};
+		factory(require, exports);
+		return exports.default;
+	}
+
 })();
 // Copyright © 2015-2018 Alex Kukhtin. All rights reserved.
 
@@ -86,10 +98,16 @@ app.modules['std:locale'] = function () {
 		if (!pElem)
 			return;
 		let parentRect = pElem.getBoundingClientRect();
-		if (elRect.top < parentRect.top)
-			el.scrollIntoView(true);
-		else if (elRect.bottom > parentRect.bottom)
-			el.scrollIntoView(false);
+		if (elRect.top < parentRect.top) {
+			//pElem.scrollTop -= parentRect.top - elRect.top + 1;
+			//el.scrollIntoView(true);
+			el.scrollIntoView({ block: 'nearest' });
+		}
+		else if (elRect.bottom > parentRect.bottom) {
+			//pElem.scrollTop += elRect.bottom - parentRect.bottom + 1;
+			el.scrollIntoView({ block: 'nearest' });
+			//el.scrollIntoView(false);
+		}
 	};
 
 
@@ -108,9 +126,9 @@ app.modules['std:locale'] = function () {
 
 
 
-// Copyright © 2015-2018 Alex Kukhtin. All rights reserved.
+// Copyright © 2015-2020 Alex Kukhtin. All rights reserved.
 
-/*20181204-7382*/
+/*20200722-7691*/
 /* platform/webvue.js */
 
 (function () {
@@ -123,10 +141,15 @@ app.modules['std:locale'] = function () {
 		Vue.nextTick(func);
 	}
 
+	function print() {
+		window.print();
+	}
+
 
 	app.modules['std:platform'] = {
 		set: set,
 		defer: defer,
+		print: print,
 		File: File, /*file ctor*/
 		performance: performance
 	};
@@ -137,7 +160,28 @@ app.modules['std:locale'] = function () {
 
 // Copyright © 2015-2019 Alex Kukhtin. All rights reserved.
 
-// 20190414-7485
+/*20190704-7504*/
+/* services/const.js */
+
+app.modules['std:const'] = function () {
+
+	return {
+		SEVERITY: {
+			ERROR: 'error',
+			WARNING: 'warning',
+			INFO: 'info'
+		}
+	};
+};
+
+
+
+
+
+
+// Copyright © 2015-2020 Alex Kukhtin. All rights reserved.
+
+// 20200925-7708
 // services/utils.js
 
 app.modules['std:utils'] = function () {
@@ -156,6 +200,8 @@ app.modules['std:utils'] = function () {
 
 	const currencyFormat = new Intl.NumberFormat(numLocale, { minimumFractionDigits: 2, maximumFractionDigits: 6, useGrouping: true }).format;
 	const numberFormat = new Intl.NumberFormat(numLocale, { minimumFractionDigits: 0, maximumFractionDigits: 6, useGrouping: true }).format;
+
+	const utcdatRegEx = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/;
 
 	let numFormatCache = {};
 
@@ -188,6 +234,7 @@ app.modules['std:utils'] = function () {
 		isEqual: isEqual,
 		date: {
 			today: dateToday,
+			now: dateNow,
 			zero: dateZero,
 			parse: dateParse,
 			tryParse: dateTryParse,
@@ -202,14 +249,17 @@ app.modules['std:utils'] = function () {
 			endOfMonth: endOfMonth,
 			minDate: dateCreate(1901, 1, 1),
 			maxDate: dateCreate(2999, 12, 31),
-			fromDays: fromDays
+			fromDays: fromDays,
+			parseTime: timeParse
 		},
 		text: {
 			contains: textContains,
 			containsText: textContainsText,
 			sanitize,
 			splitPath,
-			capitalize
+			capitalize,
+			maxChars,
+			equalNoCase: stringEqualNoCase
 		},
 		currency: {
 			round: currencyRound,
@@ -245,8 +295,10 @@ app.modules['std:utils'] = function () {
 
 	function isEqual(o1, o2) {
 		if (o1 === o2) return true;
-		if (isDate(o1) && isDate(o2))
+		else if (isDate(o1) && isDate(o2))
 			return o1.getTime() === o2.getTime();
+		else if (isObjectExact(o1) && isObjectExact(o2))
+			return JSON.stringify(o1) === JSON.stringify(o2);
 		return false;
 	}
 
@@ -283,7 +335,7 @@ app.modules['std:utils'] = function () {
 			return '';
 		else if (isObject(obj))
 			return toJson(obj);
-		return obj + '';
+		return '' + obj;
 	}
 
 	function defaultValue(type) {
@@ -378,6 +430,19 @@ app.modules['std:utils'] = function () {
 		return formatFunc(num);
 	}
 
+	function formatDateWithFormat(date, format) {
+		if (!format)
+			return formatDate(date);
+		switch (format) {
+			case 'MMMM yyyy':
+				return capitalize(date.toLocaleDateString(locale.$Locale, { month: 'long', year: 'numeric' }));
+			default:
+				console.error('invalid date format: ' + format);
+		}
+		return formatDate(date);
+	}
+
+
 	function format(obj, dataType, opts) {
 		opts = opts || {};
 		if (!dataType)
@@ -392,6 +457,8 @@ app.modules['std:utils'] = function () {
 				}
 				if (dateIsZero(obj))
 					return '';
+				if (opts.format)
+					return formatDateWithFormat(obj, opts.format);
 				return formatDate(obj) + ' ' + formatTime(obj);
 			case "Date":
 				if (isString(obj))
@@ -402,12 +469,16 @@ app.modules['std:utils'] = function () {
 				}
 				if (dateIsZero(obj))
 					return '';
+				if (opts.format)
+					return formatDateWithFormat(obj, opts.format);
 				return formatDate(obj);
-			case "DateUrl":
+			case 'DateUrl':
 				if (dateIsZero(obj))
 					return '';
+				if (dateHasTime(obj))
+					return obj.toISOString();
 				return '' + obj.getFullYear() + pad2(obj.getMonth() + 1) + pad2(obj.getDate());
-			case "Time":
+			case 'Time':
 				if (!isDate(obj)) {
 					console.error(`Invalid Date for utils.format (${obj})`);
 					return obj;
@@ -415,13 +486,13 @@ app.modules['std:utils'] = function () {
 				if (dateIsZero(obj))
 					return '';
 				return formatTime(obj);
-			case "Period":
+			case 'Period':
 				if (!obj.format) {
 					console.error(`Invalid Period for utils.format (${obj})`);
 					return obj;
 				}
 				return obj.format('Date');
-			case "Currency":
+			case 'Currency':
 				if (!isNumber(obj)) {
 					obj = toNumber(obj);
 					//TODO:check console.error(`Invalid Currency for utils.format (${obj})`);
@@ -432,7 +503,7 @@ app.modules['std:utils'] = function () {
 				if (opts.format)
 					return formatNumber(obj, opts.format);
 				return currencyFormat(obj);
-			case "Number":
+			case 'Number':
 				if (!isNumber(obj)) {
 					obj = toNumber(obj);
 					//TODO:check console.error(`Invalid Number for utils.format (${obj})`);
@@ -474,20 +545,28 @@ app.modules['std:utils'] = function () {
 
 	function dateToday() {
 		let td = new Date();
-		td.setHours(0, 0, 0, 0);
-		td.setHours(0, -td.getTimezoneOffset(), 0, 0);
-		return td;
+		return new Date(Date.UTC(td.getFullYear(), td.getMonth(), td.getDate(), 0, 0, 0, 0));
+	}
+
+	function dateNow(second) {
+		let td = new Date();
+		let sec = second ? td.getSeconds() : 0;
+		return new Date(Date.UTC(td.getFullYear(), td.getMonth(), td.getDate(), td.getHours(), td.getMinutes(), sec, 0));
 	}
 
 	function dateZero() {
-		let td = new Date(0, 0, 1, 0, 0, 0, 0);
-		td.setHours(0, -td.getTimezoneOffset(), 0, 0);
+		let td = new Date(Date.UTC(0, 0, 1, 0, 0, 0, 0));
 		return td;
 	}
 
 	function dateTryParse(str) {
 		if (!str) return dateZero();
 		if (isDate(str)) return str;
+
+		if (utcdatRegEx.test(str)) {
+			return new Date(str);
+		}
+
 		let dt;
 		if (str.length === 8) {
 			dt = new Date(+str.substring(0, 4), +str.substring(4, 6) - 1, +str.substring(6, 8), 0, 0, 0, 0);
@@ -497,9 +576,7 @@ app.modules['std:utils'] = function () {
 			dt = new Date(str);
 		}
 		if (!isNaN(dt.getTime())) {
-			dt.setHours(0, 0, 0, 0);
-			dt.setHours(0, -dt.getTimezoneOffset(), 0, 0);
-			return dt;
+			return new Date(Date.UTC(dt.getFullYear(), dt.getMonth(), dt.getDate(), 0, 0, 0, 0));
 		}
 		return str;
 	}
@@ -507,15 +584,31 @@ app.modules['std:utils'] = function () {
 	function string2Date(str) {
 		try {
 			let dt = new Date(str);
-			dt.setHours(0, -dt.getTimezoneOffset(), 0, 0);
+			dt.setUTCHours(0, 0, 0, 0);
 			return dt;
 		} catch (err) {
 			return str;
 		}
 	}
 
-	function dateParse(str) {
+	function timeParse(str) {
 		str = str || '';
+		if (!str) return dateZero();
+		let seg = str.split(/[^\d]/).filter(x => x);
+		if (seg.length === 1) {
+			seg.push('0');
+		}
+		let h = Math.min(+seg[0], 23);
+		let m = Math.min(+seg[1], 59);
+		let td = new Date(0, 0, 1, h, m, 0, 0);
+		return td;
+	}
+
+	function dateParse(str, yearCutOff) {
+		str = str || '';
+		if (utcdatRegEx.test(str)) {
+			return new Date(str);
+		}
 		if (!str) return dateZero();
 		let today = dateToday();
 		let seg = str.split(/[^\d]/).filter(x => x);
@@ -525,19 +618,26 @@ app.modules['std:utils'] = function () {
 		} else if (seg.length === 2) {
 			seg.push('' + today.getFullYear());
 		}
+
+		let cutOffYear = function (year) {
+			let yco = yearCutOff || '+10';
+			let th = (yco.startsWith('+') || yco.startsWith('-')) ? (today.getFullYear() % 100 + parseInt(yco, 10)) : (+yco % 100);
+			return year <= th ? '20' : '19';
+		}
+
 		let normalizeYear = function (y) {
 			y = '' + y;
 			switch (y.length) {
-				case 2: y = '20' + y; break;
+				case 1: y = cutOffYear(y) + '0' + y; break;
+				case 2: y = cutOffYear(y) + y; break;
 				case 4: break;
 				default: y = today.getFullYear(); break;
 			}
 			return +y;
 		};
-		let td = new Date(+normalizeYear(seg[2]), +((seg[1] ? seg[1] : 1) - 1), +seg[0], 0, 0, 0, 0);
+		let td = new Date(Date.UTC(+normalizeYear(seg[2]), +((seg[1] ? seg[1] : 1) - 1), +seg[0], 0, 0, 0, 0));
 		if (isNaN(td.getDate()))
 			return dateZero();
-		td.setHours(0, -td.getTimezoneOffset(), 0, 0);
 		return td;
 	}
 
@@ -552,15 +652,18 @@ app.modules['std:utils'] = function () {
 		return dateEqual(d1, dateZero());
 	}
 
+	function dateHasTime(d1) {
+		if (!isDate(d1)) return false;
+		return d1.getUTCHours() !== 0 || d1.getUTCMinutes() !== 0 && d1.getUTCSeconds() !== 0;
+	}
+
 	function endOfMonth(dt) {
-		var dte = new Date(dt.getFullYear(), dt.getMonth() + 1, 0, 0, 0, 0);
-		dte.setHours(0, -dte.getTimezoneOffset(), 0, 0);
+		var dte = new Date(Date.UTC(dt.getFullYear(), dt.getMonth() + 1, 0, 0, 0, 0));
 		return dte;
 	}
 
 	function dateCreate(year, month, day) {
-		let dt = new Date(year, month - 1, day, 0, 0, 0, 0);
-		dt.setHours(0, -dt.getTimezoneOffset(), 0, 0);
+		let dt = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
 		return dt;
 	}
 
@@ -568,6 +671,10 @@ app.modules['std:utils'] = function () {
 		if (d1.getTime() > d2.getTime())
 			[d1, d2] = [d2, d1];
 		switch (unit) {
+			case "second":
+				return (d2 - d1) / 1000;
+			case "minute":
+				return +(((d2 - d1) / 1000) / 60).toFixed(0);
 			case "month":
 				let delta = 0;
 				if (d2.getDate() < d1.getDate())
@@ -591,17 +698,17 @@ app.modules['std:utils'] = function () {
 				let du = 1000 * 60 * 60 * 24;
 				return Math.floor((d2 - d1) / du);
 			case "year":
-			case 'year':
 				var dd = new Date(d1.getFullYear(), d2.getMonth(), d2.getDate(), d2.getHours(), d2.getMinutes(), d2.getSeconds(), d2.getMilliseconds());
-				return d2.getFullYear() - d1.getFullYear() + (dd < d1 ? (d2 > d1 ? -1 : 0) : (d2 < d1 ? 1 : 0));
+				let dy = dd < d1 ?
+					d2 > d1 ? -1 : 0 :
+					d2 < d1 ? 1  : 0;
+				return d2.getFullYear() - d1.getFullYear() + dy;
 		}
 		throw new Error('Invalid unit value for utils.date.diff');
 	}
 
 	function fromDays(days) {
-		let dt = new Date(1900, 0, days, 0, 0, 0, 0);
-		dt.setHours(0, -dt.getTimezoneOffset(), 0, 0);
-		return dt;
+		return new Date(Date.UTC(1900, 0, days, 0, 0, 0, 0));
 	}
 
 	function dateAdd(dt, nm, unit) {
@@ -616,11 +723,10 @@ app.modules['std:utils'] = function () {
 				// save day of month
 				let newMonth = dt.getMonth() + nm;
 				let day = dt.getDate();
-				var ldm = new Date(dt.getFullYear(), newMonth + 1, 0).getDate();
+				var ldm = new Date(Date.UTC(dt.getFullYear(), newMonth + 1, 0, 0, 0)).getDate();
 				if (day > ldm)
 					day = ldm;
-				var dtx = new Date(dt.getFullYear(), newMonth, day);
-				dtx.setHours(0, -dtx.getTimezoneOffset(), 0, 0);
+				var dtx = new Date(Date.UTC(dt.getFullYear(), newMonth, day, 0, 0, 0));
 				return dtx;
 			case 'day':
 				du = 1000 * 60 * 60 * 24;
@@ -664,6 +770,16 @@ app.modules['std:utils'] = function () {
 	function capitalize(text) {
 		if (!text) return '';
 		return text.charAt(0).toUpperCase() + text.slice(1);
+	}
+	function maxChars(text, length) {
+		text = '' + text || '';
+		if (text.length < length)
+			return text;
+		return text.substring(0, length - 1) + '\u2026' /*ellipsis*/;
+	}
+
+	function stringEqualNoCase(s1, s2) {
+		return (s1 || '').toLowerCase() === (s2 || '').toLowerCase();
 	}
 
 	function textContains(text, probe) {
@@ -877,7 +993,7 @@ app.modules['std:url'] = function () {
 	function parseUrlAndQuery(url, querySrc) {
 		let query = {};
 		for (let p in querySrc) {
-			if (p.startsWith('_')) continue;
+			if (p.startsWith('_') || p.startsWith('$')) continue;
 			query[p] = toUrl(querySrc[p]); // all values are string
 		}
 		let rv = { url: url, query: query };
@@ -963,7 +1079,7 @@ app.modules['std:url'] = function () {
 
 // Copyright © 2015-2019 Alex Kukhtin. All rights reserved.
 
-// 20190223-7441
+/*20191101-7575*/
 // services/period.js
 
 app.modules['std:period'] = function () {
@@ -1067,7 +1183,7 @@ app.modules['std:period'] = function () {
 			}
 		}
 		if (showCustom)
-			return 'Довільно';
+			return locale.$CustomPeriod;
 		let from = this.From;
 		let to = this.To;
 		return utils.format(from, 'Date') + ' - ' + (utils.format(to, 'Date') || '???');
@@ -1092,6 +1208,9 @@ app.modules['std:period'] = function () {
 		return this.normalize();
 	};
 
+	TPeriod.prototype.toJson = function () {
+		return JSON.stringify(this);
+	};
 
 	
 	return {
@@ -1246,9 +1365,9 @@ app.modules['std:period'] = function () {
 };
 
 
-// Copyright © 2015-2018 Alex Kukhtin. All rights reserved.
+// Copyright © 2015-2020 Alex Kukhtin. All rights reserved.
 
-// 20181019-7323
+// 20200725-7693
 /* services/modelinfo.js */
 
 app.modules['std:modelInfo'] = function () {
@@ -1256,10 +1375,12 @@ app.modules['std:modelInfo'] = function () {
 	return {
 		copyfromQuery: copyFromQuery,
 		get: getPagerInfo,
-		reconcile: reconcile
+		reconcile,
+		reconcileAll
 	};
 
 	function copyFromQuery(mi, q) {
+		if (!mi) return;
 		let psq = { PageSize: q.pageSize, Offset: q.offset, SortDir: q.dir, SortOrder: q.order, GroupBy: q.group };
 		for (let p in psq) {
 			mi[p] = psq[p];
@@ -1292,6 +1413,13 @@ app.modules['std:modelInfo'] = function () {
 				mi.Filter[p] = dx;
 				//console.dir(mi.Filter[p]);
 			}
+		}
+	}
+
+	function reconcileAll(m) {
+		if (!m) return;
+		for (let p in m) {
+			reconcile(m[p]);
 		}
 	}
 };
@@ -1658,10 +1786,10 @@ app.modules['std:mask'] = function () {
 	}
 };
 
-// Copyright © 2015-2019 Alex Kukhtin. All rights reserved.
+// Copyright © 2015-2020 Alex Kukhtin. All rights reserved.
 
-// 20190226-7444
-/* services/http.js */
+// 20200713-7685
+/* services/html.js */
 
 app.modules['std:html'] = function () {
 
@@ -1671,6 +1799,8 @@ app.modules['std:html'] = function () {
 		getColumnsWidth,
 		getRowHeight,
 		downloadBlob,
+		downloadUrl,
+		openUrl,
 		printDirect,
 		removePrintFrame,
 		updateDocTitle
@@ -1678,20 +1808,44 @@ app.modules['std:html'] = function () {
 
 	function getColumnsWidth(elem) {
 		let cols = elem.getElementsByTagName('col');
+		// FF bug fix. Popover does not work inside <td>.
+		let body = elem.querySelectorAll('tbody.col-shadow')[0];
+		body.style.display = "table-row-group";
 		let cells = elem.querySelectorAll('tbody.col-shadow > tr > td');
 		let len = Math.min(cols.length, cells.length);
 		for (let i = 0; i < len; i++) {
 			let w = cells[i].offsetWidth;
 			cols[i].setAttribute('data-col-width', w);
 		}
+		body.style.display = "none";
 	}
 
-	function getRowHeight(elem) {
+	function getRowHeight(elem, padding) {
 		let rows = elem.getElementsByTagName('tr');
 		for (let r = 0; r < rows.length; r++) {
-			let h = rows[r].offsetHeight - 12; /* padding !!!*/
+			let h = rows[r].offsetHeight - (padding || 12); /* padding from css */
 			rows[r].setAttribute('data-row-height', h);
 		}
+	}
+
+	function openUrl(url) {
+		let link = document.createElement('a');
+		link.style = "display:none";
+		document.body.appendChild(link);
+		link.href = url;
+		link.setAttribute('target', '_blank');
+		link.click();
+		document.body.removeChild(link);
+	}
+
+	function downloadUrl(url) {
+		let link = document.createElement('a');
+		link.style = "display:none";
+		document.body.appendChild(link);
+		link.href = url;
+		link.setAttribute('download', '');
+		link.click();
+		document.body.removeChild(link);
 	}
 
 	function downloadBlob(blob, fileName, format) {
@@ -1714,6 +1868,11 @@ app.modules['std:html'] = function () {
 
 	function printDirect(url) {
 
+
+		if (window.cefHost || navigator.userAgent.toLowerCase().indexOf('firefox') > -1) {
+			window.open(url);
+			return;
+		}
 		removePrintFrame();
 		let frame = document.createElement("iframe");
 		document.body.classList.add('waiting');
@@ -1722,16 +1881,22 @@ app.modules['std:html'] = function () {
 		document.body.appendChild(frame);
 		if (document.activeElement)
 			document.activeElement.blur();
+		//let emb = document.createElement('embed');
+		//emb.setAttribute('src', url);
+		//frame.appendChild(emb);
 		frame.setAttribute('src', url);
 
 
 		frame.onload = function (ev) {
 			let cw = frame.contentWindow;
-			let finp = cw.document.createElement('input');
-			finp.setAttribute("id", "dummy-focus");
-			finp.cssText = "width:0;height:0;border:none;position:absolute;left:-10000,top:-100000";
-			cw.document.body.appendChild(finp);
-			finp.focus();
+			if (cw.document.body) {
+				let finp = cw.document.createElement('input');
+				finp.setAttribute("id", "dummy-focus");
+				finp.cssText = "width:0;height:0;border:none;position:absolute;left:-10000,top:-100000";
+				cw.document.body.appendChild(finp);
+				finp.focus();
+				cw.document.body.removeChild(finp);
+			}
 			document.body.classList.remove('waiting');
 			cw.print();
 		};
@@ -1756,7 +1921,7 @@ app.modules['std:html'] = function () {
 
 // Copyright © 2015-2019 Alex Kukhtin. All rights reserved.
 
-// 20190221-7439
+// 20190808-7517
 /* services/http.js */
 
 app.modules['std:http'] = function () {
@@ -1809,6 +1974,11 @@ app.modules['std:http'] = function () {
 					}
 					else
 						reject(xhr.responseText || xhr.statusText);
+				} else if (xhr.status === 473 /*non standard */) {
+					if (xhr.statusText === 'Unauthorized') {
+						// go to login page
+						window.location.assign('/');
+					}
 				}
 				else
 					reject(xhr.statusText);
@@ -1859,11 +2029,20 @@ app.modules['std:http'] = function () {
 	}
 
 	function load(url, selector, baseUrl) {
-		let fc = selector ? selector.firstElementChild : null;
-		if (fc && fc.__vue__) {
-			fc.__vue__.$destroy();
+		if (selector) {
+			let fc = selector.firstElementChild
+			if (fc && fc.__vue__) {
+				let ve = fc.__vue__;
+				ve.$destroy();
+				ve.$el.remove();
+				ve.$el = null;
+				fc.__vue__ = null;
+			}
+			selector.innerHTML = '';
 		}
+
 		return new Promise(function (resolve, reject) {
+			eventBus.$emit('beginLoad');
 			doRequest('GET', url)
 				.then(function (html) {
 					if (html.startsWith('<!DOCTYPE')) {
@@ -1886,7 +2065,10 @@ app.modules['std:http'] = function () {
 						let s = rdoc.scripts[i];
 						if (s.type === 'text/javascript') {
 							let newScript = document.createElement("script");
-							newScript.text = s.text;
+							if (s.src)
+								newScript.src = s.src;
+							else
+								newScript.text = s.text;
 							document.body.appendChild(newScript).parentNode.removeChild(newScript);
 						}
 					}
@@ -1902,11 +2084,13 @@ app.modules['std:http'] = function () {
 								eventBus.$emit('modalSetAttribites', dca, ve);
 						}
 					}
+					rdoc.body.remove();
 					resolve(true);
+					eventBus.$emit('endLoad');
 				})
 				.catch(function (error) {
-					alert(error);
-					resolve(false);
+					reject(error);
+					eventBus.$emit('endLoad');
 				});
 		});
 	}
@@ -1963,9 +2147,9 @@ app.modules['std:routing'] = function () {
 	}
 };
 
-// Copyright © 2015-2018 Alex Kukhtin. All rights reserved.
+// Copyright © 2015-2019 Alex Kukhtin. All rights reserved.
 
-/*20180705-7241*/
+/*20191122-7587*/
 /*validators.js*/
 
 app.modules['std:validators'] = function () {
@@ -1986,15 +2170,21 @@ app.modules['std:validators'] = function () {
 	};
 
 	function validateStd(rule, val) {
-		switch (rule) {
+		switch (rule.valid) {
 			case 'notBlank':
 				return utils.notBlank(val);
 			case "email":
-				return validEmail(val);
+				return val === '' || EMAIL_REGEXP.test(val);
 			case "url":
-				return validUrl(val);
+				return val === '' || URL_REGEXP.test(val);
 			case "isTrue":
 				return val === true;
+			case "regExp":
+				if (!(rule.regExp instanceof RegExp)) {
+					console.error('rule.regExp is undefined or is not an regular expression');
+					return false;
+				}
+				return val === '' || rule.regExp.test(val);
 		}
 		console.error(`invalid std rule: '${rule}'`);
 		return true;
@@ -2036,7 +2226,7 @@ app.modules['std:validators'] = function () {
 				if (!rule.applyIf(item, val)) return;
 			}
 			if (utils.isString(rule)) {
-				if (!validateStd('notBlank', val))
+				if (!validateStd({ valid: 'notBlank' }, val))
 					retval.push({ msg: rule, severity: ERROR });
 			} else if (utils.isFunction(rule)) {
 				let vr = rule(item, val);
@@ -2046,7 +2236,7 @@ app.modules['std:validators'] = function () {
 					retval.push({ msg: vr.msg, severity: vr.severity || sev });
 				}
 			} else if (utils.isString(rule.valid)) {
-				if (!validateStd(rule.valid, val))
+				if (!validateStd(rule, val))
 					retval.push({ msg: rule.msg, severity: sev });
 			} else if (utils.isFunction(rule.valid)) {
 				if (rule.async) {
@@ -2127,22 +2317,13 @@ app.modules['std:validators'] = function () {
 		let err = validateImpl(arr, item, val, du);
 		return err; // always array. may be defer
 	}
-
-
-	function validEmail(addr) {
-		return addr === '' || EMAIL_REGEXP.test(addr);
-	}
-
-	function validUrl(url) {
-		return url === '' || URL_REGEXP.test(url);
-	}
 };
 
 
 
-/* Copyright © 2015-2019 Alex Kukhtin. All rights reserved.*/
+/* Copyright © 2015-2020 Alex Kukhtin. All rights reserved.*/
 
-// 20190412-7483
+/*20201017-7715*/
 // services/datamodel.js
 
 (function () {
@@ -2161,6 +2342,9 @@ app.modules['std:validators'] = function () {
 	const FLAG_VIEW = 1;
 	const FLAG_EDIT = 2;
 	const FLAG_DELETE = 4;
+	const FLAG_APPLY = 8;
+	const FLAG_UNAPPLY = 16;
+
 	const DEFAULT_PAGE_SIZE = 20;
 
 	const platform = require('std:platform');
@@ -2168,6 +2352,7 @@ app.modules['std:validators'] = function () {
 	const utils = require('std:utils');
 	const log = require('std:log', true);
 	const period = require('std:period');
+	const modelInfoTool = require('std:modelInfo');
 
 	let __initialized__ = false;
 
@@ -2209,9 +2394,12 @@ app.modules['std:validators'] = function () {
 	function ensureType(type, val) {
 		if (!utils.isDefined(val))
 			val = utils.defaultValue(type);
-		if (type === Number) {
+		if (type === Number)
 			return utils.toNumber(val);
-		}
+		else if (type === String)
+			return utils.toString(val);
+		else if (type === Date && !utils.isDate(val))
+			return utils.date.parse('' + val);
 		return val;
 	}
 
@@ -2275,8 +2463,14 @@ app.modules['std:validators'] = function () {
 				let eventWasFired = false;
 				let skipDirty = prop.startsWith('$$');
 				let ctor = this._meta_.props[prop];
-				if (ctor.type) ctor = ctor.type;
-				val = ensureType(ctor, val);
+				let isjson = false;
+				if (ctor.type) {
+					isjson = !!ctor.json;
+					ctor = ctor.type;
+				}
+				if (!isjson) {
+					val = ensureType(ctor, val);
+				}
 				if (val === this._src_[prop])
 					return;
 				let oldVal = this._src_[prop];
@@ -2294,7 +2488,7 @@ app.modules['std:validators'] = function () {
 					this._src_[prop] = val;
 				}
 				if (!skipDirty) // skip special properties
-					this._root_.$setDirty(true, this._path_);
+					this._root_.$setDirty(true, this._path_, prop);
 				if (this._lockEvents_) return; // events locked
 				if (eventWasFired) return; // was fired
 				let eventName = (this._path_ || 'Root') + '.' + prop + '.change';
@@ -2379,7 +2573,7 @@ app.modules['std:validators'] = function () {
 		defHidden(elem, PARENT, parent);
 		defHidden(elem, ERRORS, null, true);
 		defHidden(elem, '_lockEvents_', 0, true);
-		elem._uiprops_ = {};
+		elem._uiprops_ = {}; // observable!
 
 		let hasTemplProps = false;
 		const templ = elem._root_.$template;
@@ -2399,8 +2593,23 @@ app.modules['std:validators'] = function () {
 		if (path && path.endsWith(']'))
 			elem.$selected = false;
 
-		if (elem._meta_.$items)
+		if (elem._meta_.$items) {
 			elem.$expanded = false; // tree elem
+			elem.$collapsed = false; // sheet elem
+			elem.$level = 0;
+		}
+
+		elem.$lockEvents = function () {
+			this._lockEvents_ += 1;
+		};
+
+		elem.$unlockEvents = function () {
+			this._lockEvents_ -= 1;
+		};
+
+		defHiddenGet(elem, '$eventsLocked', function () {
+			return this._lockEvents_ > 0;
+		});
 
 		defPropertyGet(elem, '$valid', function () {
 			if (this._root_._needValidate_)
@@ -2468,6 +2677,28 @@ app.modules['std:validators'] = function () {
 			};
 		}
 
+		function setDefaults(root) {
+			if (!root.$template || !root.$template.defaults)
+				return;
+			for (let p in root.$template.defaults) {
+				let px = p.lastIndexOf('.');
+				if (px === -1)
+					continue;
+				let path = p.substring(0, px);
+				let prop = p.substring(px + 1);
+				if (prop.endsWith('[]'))
+					continue;
+				let def = root.$template.defaults[p];
+				let obj = utils.simpleEval(root, path);
+				if (obj.$isNew) {
+					if (utils.isFunction(def))
+						platform.set(obj, prop, def.call(root, obj, prop));
+					else
+						platform.set(obj, prop, def);
+				}
+			}
+		}
+
 		let constructEvent = ctorname + '.construct';
 		let _lastCaller = null;
 		let propForConstruct = path ? propFromPath(path) : '';
@@ -2486,6 +2717,7 @@ app.modules['std:validators'] = function () {
 				}
 			}
 			elem._setModelInfo_ = setRootModelInfo;
+			elem._setRuntimeInfo_ = setRootRuntimeInfo;
 			elem._findRootModelInfo = findRootModelInfo;
 			elem._saveSelections = saveSelections;
 			elem._restoreSelections = restoreSelections;
@@ -2493,6 +2725,7 @@ app.modules['std:validators'] = function () {
 			elem._needValidate_ = false;
 			elem._modelLoad_ = (caller) => {
 				_lastCaller = caller;
+				setDefaults(elem);
 				elem._fireLoad_();
 				__initialized__ = true;
 			};
@@ -2500,13 +2733,22 @@ app.modules['std:validators'] = function () {
 				platform.defer(() => {
 					let isRequery = elem.$vm.__isModalRequery();
 					elem.$emit('Model.load', elem, _lastCaller, isRequery);
-					elem._root_.$setDirty(false);
+					elem._root_.$setDirty(elem._root_.$isCopy ? true : false);
 				});
+			};
+			elem._fireUnload_ = () => {
+				elem.$emit('Model.unload', elem);
 			};
 			defHiddenGet(elem, '$readOnly', isReadOnly);
 			defHiddenGet(elem, '$stateReadOnly', isStateReadOnly);
 			defHiddenGet(elem, '$isCopy', isModelIsCopy);
+			defHiddenGet(elem, '$mainObject', mainObject);
+
 			elem._seal_ = seal;
+
+			elem._fireGlobalPeriodChanged_ = (period) => {
+				elem.$emit('GlobalPeriod.change', elem, period);
+			};
 		}
 		if (startTime) {
 			logtime('create root time:', startTime, false);
@@ -2516,6 +2758,7 @@ app.modules['std:validators'] = function () {
 
 	function seal(elem) {
 		Object.seal(elem);
+		if (!elem._meta_) return;
 		for (let p in elem._meta_.props) {
 			let ctor = elem._meta_.props[p];
 			if (ctor.type) ctor = ctor.type;
@@ -2559,6 +2802,14 @@ app.modules['std:validators'] = function () {
 		return false;
 	}
 
+	function mainObject() {
+		if ('$main' in this._meta_) {
+			let mainProp = this._meta_.$main;
+			return this[mainProp];
+		}
+		return null;
+	}
+
 	function isModelIsCopy() {
 		if ('__modelInfo' in this) {
 			let mi = this.__modelInfo;
@@ -2588,6 +2839,11 @@ app.modules['std:validators'] = function () {
 			return !this.$valid;
 		});
 
+		if (ctor.prototype._meta_.$cross)
+			defPropertyGet(arr, "$cross", function () {
+				return ctor.prototype._meta_.$cross;
+			});
+
 		createObjProperties(arr, arrctor);
 
 		let constructEvent = arrctor.name + '.construct';
@@ -2597,7 +2853,7 @@ app.modules['std:validators'] = function () {
 			return arr;
 		for (let i = 0; i < source.length; i++) {
 			arr[i] = new arr._elem_(source[i], dotPath, arr);
-			arr[i].$checked = false;
+			arr[i].__checked = false;
 		}
 		return arr;
 	}
@@ -2616,7 +2872,7 @@ app.modules['std:validators'] = function () {
 
 		arr.$new = function (src) {
 			let newElem = new this._elem_(src || null, this._path_ + '[]', this);
-			newElem.$checked = false;
+			newElem.__checked = false;
 			return newElem;
 		};
 
@@ -2682,14 +2938,24 @@ app.modules['std:validators'] = function () {
 			platform.defer(() => this.$loadLazy());
 		};
 
+		arr.$resetLazy = function () {
+			this.$empty();
+			if (this.$loaded)
+				this.$loaded = false;
+			return this;
+		};
+
 		arr.$loadLazy = function () {
+			if (!this.$isLazy())
+				return;
 			return new Promise((resolve, reject) => {
+				if (!this.$vm) return;
 				if (this.$loaded) { resolve(this); return; }
 				if (!this.$parent) { resolve(this); return; }
 				const meta = this.$parent._meta_;
 				if (!meta.$lazy) { resolve(this); return; }
 				let prop = propFromPath(this._path_);
-				if (!meta.$lazy.indexOf(prop) === -1) { resolve(this); return; }
+				if (meta.$lazy.indexOf(prop) === -1) { resolve(this); return; }
 				this.$vm.$loadLazy(this.$parent, prop).then(() => resolve(this));
 			});
 		};
@@ -2800,7 +3066,7 @@ app.modules['std:validators'] = function () {
 
 		arr.$clearSelected = function () {
 			let sel = this.$selected;
-			if (!sel) return; // already null
+			if (!sel) return this; // already null
 			sel.$selected = false;
 			emitSelect(this, null);
 			return this;
@@ -2832,7 +3098,7 @@ app.modules['std:validators'] = function () {
 
 		arr.$copy = function (src) {
 			if (this.$root.isReadOnly)
-				return;
+				return this;
 			this.$empty();
 			if (utils.isArray(src)) {
 				for (let i = 0; i < src.length; i++) {
@@ -2841,6 +3107,24 @@ app.modules['std:validators'] = function () {
 			}
 			return this;
 		};
+
+		arr.$sum = function (fn) {
+			return this.reduce((a, c) => a + fn(c), 0);
+		};
+
+		arr.$find = function (fc, thisArg) {
+			for (let i = 0; i < this.length; i++) {
+				let el = this[i];
+				if (fc.call(thisArg, el, i, this))
+					return el;
+				if ('$items' in el) {
+					let x = el.$items.$find(fc);
+					if (x)
+						return x;
+				}
+			}
+			return null;
+		}
 
 		arr.__fireChange__ = function (opts) {
 			let root = this.$root;
@@ -2874,6 +3158,11 @@ app.modules['std:validators'] = function () {
 			if (this._root_ && this._root_._host_)
 				return this._root_._host_.$ctrl;
 			return null;
+		});
+
+		defHiddenGet(obj, "$ready", function () {
+			if (!this.$vm) return true;
+			return !this.$vm.$isLoading;
 		});
 
 		obj.$isValid = function (props) {
@@ -2943,6 +3232,25 @@ app.modules['std:validators'] = function () {
 				return this[itmsName];
 			});
 		}
+		if (meta.$permissions) {
+			defHiddenGet(obj.prototype, "$permissions", function () {
+				let permName = this._meta_.$permissions;
+				if (!permName) return undefined;
+				var perm = this[permName];
+				if (this.$isNew && perm === 0) {
+					let mi = this.$ModelInfo;
+					if (mi && utils.isDefined(mi.Permissions))
+						perm = mi.Permissions;
+				}
+				return Object.freeze({
+					canView: !!(perm & FLAG_VIEW),
+					canEdit: !!(perm & FLAG_EDIT),
+					canDelete: !!(perm & FLAG_DELETE),
+					canApply: !!(perm & FLAG_APPLY),
+					canUnapply: !!(perm & FLAG_UNAPPLY)
+				});
+			});
+		}
 	}
 
 	function emitSelect(arr, item) {
@@ -2967,13 +3275,26 @@ app.modules['std:validators'] = function () {
 				// expand all parent items
 				let p = this._parent_._parent_;
 				while (p) {
-					p.$expanded = true;
-					p = p._parent_._parent_;
 					if (!p || p === this.$root)
 						break;
+					p.$expanded = true;
+					p = p._parent_._parent_;
 				}
 			}
 		};
+		Object.defineProperty(elem.prototype, '$checked', {
+			enumerable: true,
+			configurable: true, /* needed */
+			get() {
+				return this.__checked;
+			},
+			set(val) {
+				this.__checked = val;
+				let arr = this.$parent;
+				let checkEvent = arr._path_ + '[].check';
+				arr._root_.$emit(checkEvent, arr/*array*/, this);
+			}
+		});
 	}
 
 	function emit(event, ...arr) {
@@ -3005,7 +3326,7 @@ app.modules['std:validators'] = function () {
 			return null;
 		}
 		if (name in tml.delegates) {
-			return tml.delegates[name];
+			return tml.delegates[name].bind(this.$root);
 		}
 		console.error(`Delegate "${name}" not found in the template`);
 	}
@@ -3242,14 +3563,15 @@ app.modules['std:validators'] = function () {
 		//console.dir(allerrs);
 	}
 
-	function setDirty(val, path) {
+	function setDirty(val, path, prop) {
 		if (this.$root.$readOnly)
 			return;
 		if (path && path.toLowerCase().startsWith('query'))
 			return;
 		if (isNoDirty(this.$root))
 			return;
-		// TODO: template.options.skipDirty
+		if (path && prop && isSkipDirty(this.$root, `${path}.${prop}`))
+			return;
 		this.$dirty = val;
 	}
 
@@ -3287,6 +3609,15 @@ app.modules['std:validators'] = function () {
 		return opts && opts.noDirty;
 	}
 
+	function isSkipDirty(root, path) {
+		let t = root.$template;
+		const opts = t && t.options;
+		if (!opts) return false;
+		const sd = opts.skipDirty;
+		if (!sd || !utils.isArray(sd)) return false;
+		return sd.indexOf(path) !== -1;
+	}
+
 	function saveSelections() {
 		let root = this;
 		let t = root.$template;
@@ -3297,8 +3628,10 @@ app.modules['std:validators'] = function () {
 		let result = {};
 		for (let p of ps) {
 			let arr = utils.simpleEval(root, p);
-			if (utils.isArray(arr)) {
-				result[p] = arr.$selectedIndex;
+			if ('$selected' in arr) {
+				let sel = arr.$selected;
+				if (sel)
+					result[p] = sel.$id;
 			}
 		}
 		return result;
@@ -3310,14 +3643,16 @@ app.modules['std:validators'] = function () {
 		let root = this;
 		for (let p in sels) {
 			let arr = utils.simpleEval(root, p);
-			let si = sels[p];
-			if (utils.isArray(arr) && si >= 0 && si < arr.length) {
-				arr[si].$select();
+			let selId = sels[p];
+			if ('$find' in arr) {
+				let se = arr.$find(x => x.$id === selId);
+				if (se)
+					se.$select();
 			}
 		}
 	}
 
-	function merge(src, afterSave, existsOnly) {
+	function merge(src, checkBindOnce, existsOnly) {
 		let oldId = this.$id__;
 		try {
 			if (src === null)
@@ -3326,7 +3661,7 @@ app.modules['std:validators'] = function () {
 			this._lockEvents_ += 1;
 			for (var prop in this._meta_.props) {
 				if (prop.startsWith('$$')) continue; // always skip
-				if (afterSave && isSkipMerge(this._root_, prop)) continue;
+				if (checkBindOnce && isSkipMerge(this._root_, prop)) continue;
 				let ctor = this._meta_.props[prop];
 				if (ctor.type) ctor = ctor.type;
 				let trg = this[prop];
@@ -3365,6 +3700,7 @@ app.modules['std:validators'] = function () {
 			this._root_._needValidate_ = true;
 			this._lockEvents_ -= 1;
 		}
+		if (this.$parent._lockEvents_) return this; // may be custom lock
 		let newId = this.$id__;
 		let fireChange = false;
 		if (utils.isDefined(newId) && utils.isDefined(oldId))
@@ -3374,6 +3710,7 @@ app.modules['std:validators'] = function () {
 			let eventName = this._path_ + '.change';
 			this._root_.$emit(eventName, this.$parent, this, this, propFromPath(this._path_));
 		}
+		return this;
 	}
 
 	function implementRoot(root, template, ctors) {
@@ -3388,6 +3725,7 @@ app.modules['std:validators'] = function () {
 		root.prototype._validate_ = validate;
 		root.prototype._validateAll_ = validateAll;
 		root.prototype.$forceValidate = forceValidateAll;
+		root.prototype.$destroy = destroyRoot;
 		// props cache for t.construct
 		if (!template) return;
 		let xProp = {};
@@ -3423,13 +3761,45 @@ app.modules['std:validators'] = function () {
 		return obj;
 	}
 
-	function setRootModelInfo(item, data) {
+	function setRootModelInfo(elem, data) {
 		if (!data.$ModelInfo) return;
-		let elem = item;
 		for (let p in data.$ModelInfo) {
 			if (!elem) elem = this[p];
 			elem.$ModelInfo = checkPeriod(data.$ModelInfo[p]);
+
+			elem.$ModelInfo.$setFilter = function (prop, val) {
+				if (period.isPeriod(val))
+					this.Filter[prop].assign(val);
+				else
+					this.Filter[prop] = val;
+			};
+
 			return; // first element only
+		}
+	}
+
+	function setRootRuntimeInfo(runtime) {
+		if (!runtime) return;
+		if (runtime.$cross) {
+			for (let p in this) {
+				if (p.startsWith("$") || p.startsWith('_')) continue;
+				let ta = this[p];
+				if (ta._elem_ && ta.$cross) {
+					for (let x in runtime.$cross) {
+						if (ta._elem_.name != x) continue;
+						let t = ta.$cross;
+						let s = runtime.$cross[x];
+						for (let p in t) {
+							let ta = t[p];
+							let sa = s[p];
+							if (ta && sa)
+								ta.splice(0, ta.length, ...sa);
+							else if (ta && !sa)
+								ta.splice(0, ta.length);
+						}
+					}
+				}
+			}
 		}
 	}
 
@@ -3440,9 +3810,15 @@ app.modules['std:validators'] = function () {
 		};
 		let mi = rawData.$ModelInfo;
 		if (!mi) return;
+		modelInfoTool.reconcileAll(mi);
 		for (let p in mi) {
 			root[p].$ModelInfo = checkPeriod(mi[p]);
 		}
+	}
+
+	function destroyRoot() {
+		this._host_.$viewModel = null;
+		this._host_ = null;
 	}
 
 	app.modules['std:datamodel'] = {
@@ -3588,9 +3964,9 @@ app.modules['std:popup'] = function () {
 app.components['std:store'] = {
 };
 
-// Copyright © 2015-2018 Alex Kukhtin. All rights reserved.
+// Copyright © 2015-2020 Alex Kukhtin. All rights reserved.
 
-// 20181117-7359
+// 20200505-7654
 // components/collectionview.js
 
 /*
@@ -3604,8 +3980,11 @@ TODO:
 	const log = require('std:log', true);
 	const utils = require('std:utils');
 	const period = require('std:period');
+	const eventBus = require('std:eventBus');
 
 	const DEFAULT_PAGE_SIZE = 20;
+
+	const eqlower = utils.text.equalNoCase;
 
 	function getModelInfoProp(src, propName) {
 		if (!src) return undefined;
@@ -3660,6 +4039,8 @@ TODO:
 				}
 				else if (utils.isObjectExact(iv)) 
 					iv.Id = q[x];
+				else if (utils.isNumber(iv))
+					filter[x] = +q[x];
 				else {
 					filter[x] = q[x];
 				}
@@ -3723,7 +4104,7 @@ TODO:
 				// sort
 				if (this.order && this.dir) {
 					let p = this.order;
-					let d = this.dir === 'asc';
+					let d = eqlower(this.dir, 'asc');
 					arr.sort((a, b) => {
 						if (a[p] === b[p])
 							return 0;
@@ -3761,12 +4142,12 @@ TODO:
 				this.localQuery.offset = offset;
 			},
 			sortDir(order) {
-				return order === this.order ? this.dir : undefined;
+				return eqlower(order, this.order) ? this.dir : undefined;
 			},
 			doSort(order) {
 				let nq = this.makeNewQuery();
-				if (nq.order === order)
-					nq.dir = nq.dir === 'asc' ? 'desc' : 'asc';
+				if (eqlower(nq.order, order))
+					nq.dir = eqlower(nq.dir, 'asc') ? 'desc' : 'asc';
 				else {
 					nq.order = order;
 					nq.dir = 'asc';
@@ -3873,11 +4254,11 @@ TODO:
 				this.reload();
 			},
 			sortDir(order) {
-				return order === this.order ? this.dir : undefined;
+				return eqlower(order, this.order) ? this.dir : undefined;
 			},
 			doSort(order) {
-				if (order === this.order) {
-					let dir = this.dir === 'asc' ? 'desc' : 'asc';
+				if (eqlower(order, this.order)) {
+					let dir = eqlower(this.dir, 'asc') ? 'desc' : 'asc';
 					setModelInfoProp(this.ItemsSource, 'SortDir', dir);
 				} else {
 					setModelInfoProp(this.ItemsSource, 'SortOrder', order);
@@ -3933,6 +4314,13 @@ TODO:
 				this.$nextTick(() => {
 					this.lockChange = false;
 				});
+			},
+			__setFilter(props) {
+				if (this.ItemsSource !== props.source) return;
+				if (period.isPeriod(props.value))
+					this.filter[props.prop].assign(props.value);
+				else
+					this.filter[props.prop] = props.value;
 			}
 		},
 		created() {
@@ -3946,9 +4334,13 @@ TODO:
 			});
 			// from datagrid, etc
 			this.$on('sort', this.doSort);
+			eventBus.$on('setFilter', this.__setFilter);
 		},
 		updated() {
 			this.updateFilter();
+		},
+		beforeDestroy() {
+			eventBus.$off('setFilter', this.__setFilter);
 		}
 	});
 
@@ -4031,7 +4423,7 @@ TODO:
 				this.$store.commit('setquery', query);
 			},
 			sortDir(order) {
-				return order === this.order ? this.dir : undefined;
+				return eqlower(order, this.order) ? this.dir : undefined;
 			},
 			$setOffset(offset) {
 				if (this.offset === offset)
@@ -4041,8 +4433,8 @@ TODO:
 			},
 			doSort(order) {
 				let nq = this.makeNewQuery();
-				if (nq.order === order)
-					nq.dir = nq.dir === 'asc' ? 'desc' : 'asc';
+				if (eqlower(nq.order, order))
+					nq.dir = eqlower(nq.dir ,'asc') ? 'desc' : 'asc';
 				else {
 					nq.order = order;
 					nq.dir = 'asc';
@@ -4062,6 +4454,13 @@ TODO:
 				if (!nq.order) nq.dir = undefined;
 				//console.warn('filter changed');
 				this.commit(nq);
+			},
+			__setFilter(props) {
+				if (this.ItemsSource !== props.source) return;
+				if (period.isPeriod(props.value))
+					this.filter[props.prop].assign(props.value);
+				else
+					this.Filter[props.prop] = props.value;
 			}
 		},
 		created() {
@@ -4082,14 +4481,22 @@ TODO:
 			});
 
 			this.$on('sort', this.doSort);
+
+			eventBus.$on('setFilter', this.__setFilter);
+		},
+		beforeDestroy() {
+			eventBus.$off('setFilter', this.__setFilter);
 		}
 	});
 
 })();
-// Copyright © 2015-2018 Alex Kukhtin. All rights reserved.
+// Copyright © 2015-2020 Alex Kukhtin. All rights reserved.
 
-// 20181112-7353
+// 20200625-7676
 /*components/pager.js*/
+
+
+(function () {
 
 /*
 template: `
@@ -4105,125 +4512,351 @@ template: `
 		pages={{source.pages}} count={{source.sourceCount}}</code>
 </div>
 */
-const locale = window.$$locale;
 
-Vue.component('a2-pager', {
-	props: {
-		source: Object
-	},
-	computed: {
-		pages() {
-			return Math.ceil(this.count / this.source.pageSize);
+	const locale = window.$$locale;
+	const eventBus = require('std:eventBus');
+
+	Vue.component('a2-pager', {
+		props: {
+			source: Object,
+			emptyText: String,
+			templateText: String
 		},
-		currentPage() {
-			return Math.ceil(this.offset / this.source.pageSize) + 1;
-		},
-		title() {
-			let lastNo = Math.min(this.count, this.offset + this.source.pageSize);
-			if (!this.count)
-				return locale.$NoElements;
-			return `${locale.$PagerElements}: <b>${this.offset + 1}</b>-<b>${lastNo}</b> ${locale.$Of} <b>${this.count}</b>`;
-		},
-		offset() {
-			return +this.source.offset;
-		},
-		count() {
-			return +this.source.sourceCount;
-		}
-	},
-	methods: {
-		setOffset(offset) {
-			offset = +offset;
-			if (this.offset === offset)
-				return;
-			this.source.$setOffset(offset);
-		},
-		isActive(page) {
-			return page === this.currentPage;
-		},
-		click(arg, $ev) {
-			$ev.preventDefault();
-			switch (arg) {
-				case 'prev':
-					this.setOffset(this.offset - this.source.pageSize);
-					break;
-				case 'next':
-					this.setOffset(this.offset + this.source.pageSize);
-					break;
+		computed: {
+			pages() {
+				return Math.ceil(this.count / this.source.pageSize);
+			},
+			currentPage() {
+				return Math.ceil(this.offset / this.source.pageSize) + 1;
+			},
+			title() {
+				if (!this.count)
+					return this.emptyString;
+				return this.textString;
+			},
+			emptyString() {
+				return this.emptyText ? this.emptyText : locale.$NoElements;
+			},
+			textString() {
+				let lastNo = Math.min(this.count, this.offset + this.source.pageSize);
+				if (this.templateText)
+					return this.templateText
+						.replace(/\#\[Start\]/g, this.offset + 1)
+						.replace(/\#\[End\]/g, lastNo)
+						.replace(/\#\[Count\]/g, this.count);
+				else
+					return `${locale.$PagerElements}: <b>${this.offset + 1}</b>-<b>${lastNo}</b> ${locale.$Of} <b>${this.count}</b>`;
+			},
+			offset() {
+				return +this.source.offset;
+			},
+			count() {
+				return +this.source.sourceCount;
 			}
 		},
-		goto(page, $ev) {
-			$ev.preventDefault();
-			let offset = (page - 1) * this.source.pageSize;
-			this.setOffset(offset);
-		}
-	},
-	render(h, ctx) {
-		if (this.source.pageSize === -1) return; // invisible
-		let contProps = {
-			class: 'a2-pager'
-		};
-		let children = [];
-		const dotsClass = { 'class': 'a2-pager-dots' };
-		const renderBtn = (page) => {
-			return h('button', {
-				domProps: { innerText: page },
-				on: { click: ($ev) => this.goto(page, $ev) },
-				class: { active: this.isActive(page) }
-			});
-		};
-		// prev
-		children.push(h('button', {
-			on: { click: ($ev) => this.click('prev', $ev) },
-			attrs: { disabled: this.offset === 0, 'aria-label': 'Previous page' }
-		}, [h('i', { 'class': 'ico ico-chevron-left' })]
-		));
-		// first
-		if (this.pages > 0)
-			children.push(renderBtn(1));
-		if (this.pages > 1)
-			children.push(renderBtn(2));
-		// middle
-		let ms = Math.max(this.currentPage - 2, 3);
-		let me = Math.min(ms + 5, this.pages - 1);
-		if (me - ms < 5)
-			ms = Math.max(me - 5, 3);
-		if (ms > 3)
-			children.push(h('span', dotsClass, '...'));
-		for (let mi = ms; mi < me; ++mi) {
-			children.push(renderBtn(mi));
-		}
-		if (me < this.pages - 1)
-			children.push(h('span', dotsClass, '...'));
-		// last
-		if (this.pages > 3)
-			children.push(renderBtn(this.pages - 1));
-		if (this.pages > 2)
-			children.push(renderBtn(this.pages));
-		// next
-		children.push(h('button', {
-			on: { click: ($ev) => this.click('next', $ev) },
-			attrs: { disabled: this.currentPage >= this.pages, 'aria-label': 'Next Page'  }
+		methods: {
+			setOffset(offset) {
+				offset = +offset;
+				if (this.offset === offset)
+					return;
+				eventBus.$emit('closeAllPopups');
+				this.$nextTick(() => this.source.$setOffset(offset));
+			},
+			isActive(page) {
+				return page === this.currentPage;
+			},
+			click(arg, $ev) {
+				$ev.preventDefault();
+				switch (arg) {
+					case 'prev':
+						this.setOffset(this.offset - this.source.pageSize);
+						break;
+					case 'next':
+						this.setOffset(this.offset + this.source.pageSize);
+						break;
+				}
+			},
+			goto(page, $ev) {
+				$ev.preventDefault();
+				let offset = (page - 1) * this.source.pageSize;
+				this.setOffset(offset);
+			}
 		},
-			[h('i', { 'class': 'ico ico-chevron-right'})]
-		));
+		render(h, ctx) {
+			if (this.source.pageSize === -1) return; // invisible
+			let contProps = {
+				class: 'a2-pager'
+			};
+			let children = [];
+			const dotsClass = { 'class': 'a2-pager-dots' };
+			const renderBtn = (page) => {
+				return h('button', {
+					domProps: { innerText: page },
+					on: { click: ($ev) => this.goto(page, $ev) },
+					class: { active: this.isActive(page) }
+				});
+			};
+			// prev
+			children.push(h('button', {
+				on: { click: ($ev) => this.click('prev', $ev) },
+				attrs: { disabled: this.offset === 0, 'aria-label': 'Previous page' }
+			}, [h('i', { 'class': 'ico ico-chevron-left' })]
+			));
+			// first
+			if (this.pages > 0)
+				children.push(renderBtn(1));
+			// middle
+			let ms = 2;
+			let me = this.pages - 1;
+			if (this.pages == 2)
+				me = 2;
+			let sd = false, ed = false, cp = this.currentPage;
+			let len = me - ms;
+			if (len > 4) {
+				if (cp > 4)
+					sd = true;
+				if (cp < this.pages - 3)
+					ed = true;
+				if (sd && !ed)
+					ms = me - 3;
+				else if (!sd && ed)
+					me = ms + 3;
+				 else if (sd && ed) {
+					ms = cp - 1;
+					me = cp + 1;
+				}
+			}
+			if (sd)
+				children.push(h('span', dotsClass, '...'));
+			for (let mi = ms; mi <= me; ++mi)
+				children.push(renderBtn(mi));
+			if (ed)
+				children.push(h('span', dotsClass, '...'));
+			// last
+			if (this.pages > 2)
+				children.push(renderBtn(this.pages));
+			// next
+			children.push(h('button', {
+				on: { click: ($ev) => this.click('next', $ev) },
+				attrs: { disabled: this.currentPage >= this.pages, 'aria-label': 'Next Page' }
+			},
+				[h('i', { 'class': 'ico ico-chevron-right' })]
+			));
 
-		children.push(h('span', { class: 'a2-pager-divider' }));
-		children.push(h('span', { class: 'a2-pager-title', domProps: { innerHTML: this.title } }));
-		return h('div', contProps, children);
+			children.push(h('span', { class: 'a2-pager-divider' }));
+			children.push(h('span', { class: 'a2-pager-title', domProps: { innerHTML: this.title } }));
+			return h('div', contProps, children);
+		}
+	});
+})();
+
+
+// Copyright © 2015-2020 Alex Kukhtin. All rights reserved.
+
+// 20200903-7705
+/*components/include.js*/
+
+(function () {
+
+	const http = require('std:http');
+	const urlTools = require('std:url');
+	const eventBus = require('std:eventBus');
+	const utils = require('std:utils');
+
+	function _destroyElement(el) {
+		let fc = el.firstElementChild;
+		if (!fc) return;
+		let vue = fc.__vue__;
+		// Maybe collectionView created the wrapper!
+		if (vue && !vue.$marker)
+			vue = vue.$parent;
+		if (vue && vue.$marker()) {
+			vue.$destroy();
+		}
+		el.__vue__ = null;
 	}
-});
+
+	Vue.component('include', {
+		template: '<div :class="implClass"></div>',
+		props: {
+			src: String,
+			cssClass: String,
+			needReload: Boolean,
+			insideDialog: Boolean,
+			done: Function
+		},
+		data() {
+			return {
+				loading: true,
+				currentUrl: '',
+				_needReload: true
+			};
+		},
+		methods: {
+			loaded(ok) {
+				this.loading = false;
+				if (this.insideDialog)
+					eventBus.$emit('modalCreated', this);
+				if (this.done)
+					this.done();
+			},
+			requery() {
+				if (this.currentUrl) {
+					// Do not set loading. Avoid blinking
+					this.__destroy();
+					http.load(this.currentUrl, this.$el)
+						.then(this.loaded)
+						.catch(this.error);
+				}
+			},
+			__destroy() {
+				//console.warn('include has been destroyed');
+				_destroyElement(this.$el);
+			},
+			modalRequery() {
+				if (!this.insideDialog) return;
+				setTimeout(() => {
+					this.requery();
+				}, 1);
+			},
+			error(msg) {
+				msg = msg || '';
+				if (this.insideDialog)
+					eventBus.$emit('modalClose', false);
+				if (msg.indexOf('UI:') === 0) {
+					let dlgData = {
+						promise: null, data: {
+							message: msg.substring(3).replace('\\n', '\n'),
+							style: 'alert'
+						}
+					};
+					eventBus.$emit('confirm', dlgData);
+				} else
+					alert(msg);
+			}
+		},
+		computed: {
+			implClass() {
+				return `include ${this.cssClass || ''} ${this.loading ? 'loading' : ''}`;
+			}
+		},
+		mounted() {
+			//console.warn('include has been mounted');
+			if (this.src) {
+				this.currentUrl = this.src;
+				http.load(this.src, this.$el)
+					.then(this.loaded)
+					.catch(this.error);
+			}
+		},
+		destroyed() {
+			this.__destroy(); // and for dialogs too
+		},
+		watch: {
+			src: function (newUrl, oldUrl) {
+				if (this.insideDialog) {
+					// Dialog. No need to reload always.
+					this.currentUrl = newUrl;
+				}
+				else if (newUrl.split('?')[0] === oldUrl.split('?')[0]) {
+					// Only the search has changed. No need to reload.
+					this.currentUrl = newUrl;
+				}
+				else if (urlTools.idChangedOnly(newUrl, oldUrl)) {
+					// Id has changed after save. No need to reload.
+					this.currentUrl = newUrl;
+				} else if (urlTools.idOrCopyChanged(newUrl, oldUrl)) {
+					// Id has changed after save. No need to reload.
+					this.currentUrl = newUrl;
+				}
+				else {
+					this.loading = true; // hides the current view
+					this.currentUrl = newUrl;
+					this.__destroy();
+					http.load(newUrl, this.$el)
+						.then(this.loaded)
+						.catch(this.error);
+				}
+			},
+			needReload(val) {
+				// works like a trigger
+				if (val) this.requery();
+			}
+		}
+	});
 
 
-// Copyright © 2015-2019 Alex Kukhtin. All rights reserved.
+	Vue.component('a2-include', {
+		template: '<div class="a2-include"></div>',
+		props: {
+			source: String,
+			arg: undefined,
+			dat: undefined
+		},
+		data() {
+			return {
+				needLoad: 0
+			};
+		},
+		methods: {
+			__destroy() {
+				//console.warn('include has been destroyed');
+				_destroyElement(this.$el);
+			},
+			loaded() {
+			},
+			makeUrl() {
+				let arg = this.arg || '0';
+				let url = urlTools.combine('_page', this.source, arg);
+				if (this.dat)
+					url += urlTools.makeQueryString(this.dat);
+				return url;
+			},
+			load() {
+				let url = this.makeUrl();
+				this.__destroy();
+				http.load(url, this.$el)
+					.then(this.loaded)
+					.catch(this.error);
+			}
+		},
+		watch: {
+			source(newVal, oldVal) {
+				if (utils.isEqual(newVal, oldVal)) return;
+				this.needLoad += 1;
+			},
+			arg(newVal, oldVal) {
+				if (utils.isEqual(newVal, oldVal)) return;
+				this.needLoad += 1;
+			},
+			dat(newVal, oldVal) {
+				if (utils.isEqual(newVal, oldVal)) return;
+				this.needLoad += 1;
+			},
+			needLoad() {
+				this.load();
+			}
+		},
+		mounted() {
+			if (this.source) {
+				this.currentUrl = this.makeUrl(this.source);
+				http.load(this.currentUrl, this.$el)
+					.then(this.loaded)
+					.catch(this.error);
+			}
+		},
+		destroyed() {
+			this.__destroy(); // and for dialogs too
+		}
+	});
+})();
+// Copyright © 2015-2020 Alex Kukhtin. All rights reserved.
 
-// 20190403-7477
+/*20201130-7734*/
 // controllers/base.js
 
 (function () {
 
-
-	// TODO: delete this.__queryChange
 
 	const eventBus = require('std:eventBus');
 	const utils = require('std:utils');
@@ -4237,14 +4870,14 @@ Vue.component('a2-pager', {
 	const htmlTools = require('std:html', true /*no error*/);
 
 	const store = component('std:store');
-	const documentTitle = component("std:doctitle", true /*no error*/);
+	const documentTitle = component('std:doctitle', true /*no error*/);
 
 	let __updateStartTime = 0;
 	let __createStartTime = 0;
 
 	function __runDialog(url, arg, query, cb) {
 		return new Promise(function (resolve, reject) {
-			const dlgData = { promise: null, data: arg, query: query };
+			const dlgData = { promise: null, data: arg, query: query, rd:true };
 			eventBus.$emit('modal', url, dlgData);
 			dlgData.promise.then(function (result) {
 				cb(result);
@@ -4263,6 +4896,24 @@ Vue.component('a2-pager', {
 		return ra.length ? ra : null;
 	}
 
+	function isPermissionsDisabled(opts, arg) {
+		if (opts && opts.checkPermission) {
+			if (utils.isObjectExact(arg)) {
+				if (arg.$permissions) {
+					let perm = arg.$permissions;
+					let prop = opts.checkPermission;
+					if (prop in perm) {
+						if (!perm[prop])
+							return true;
+					} else {
+						console.error(`invalid permssion name: '${prop}'`);
+					}
+				}
+			}
+		}
+		return false;
+	}
+
 	const base = Vue.extend({
 		// inDialog: Boolean (in derived class)
 		// pageTitle: String (in derived class)
@@ -4276,7 +4927,8 @@ Vue.component('a2-pager', {
 				__baseUrl__: '',
 				__baseQuery__: {},
 				__requestsCount__: 0,
-				__lockQuery__: true
+				__lockQuery__: true,
+				__testId__: null
 			};
 		},
 
@@ -4325,29 +4977,21 @@ Vue.component('a2-pager', {
 			$exec(cmd, arg, confirm, opts) {
 				if (this.$isReadOnly(opts)) return;
 				if (this.$isLoading) return;
+
+				if (isPermissionsDisabled(opts, arg)) {
+					this.$alert(locale.$PermissionDenied);
+					return;
+				}
 				const root = this.$data;
 				return root._exec_(cmd, arg, confirm, opts);
-                /*
-                const doExec = () => {
-                    let root = this.$data;
-                    if (!confirm)
-                        root._exec_(cmd, arg, confirm, opts);
-                    else
-                        this.$confirm(confirm).then(() => root._exec_(cmd, arg));
-                }
-
-                if (opts && opts.saveRequired && this.$isDirty) {
-                    this.$save().then(() => doExec());
-                } else {
-                    doExec();
-                }
-                */
 			},
 
 			$toJson(data) {
 				return utils.toJson(data);
 			},
-
+			$maxChars(text, length) {
+				return utils.text.maxChars(text, length);
+			},
 			$isReadOnly(opts) {
 				return opts && opts.checkReadOnly && this.$data.$readOnly;
 			},
@@ -4400,6 +5044,7 @@ Vue.component('a2-pager', {
 					let jsonData = utils.toJson({ baseUrl: urlToSave, data: self.$data });
 					let wasNew = urltools.isNewPath(self.$baseUrl);
 					dataservice.post(url, jsonData).then(function (data) {
+						if (self.__destroyed__) return;
 						self.$data.$merge(data, true, true /*only exists*/);
 						self.$data.$emit('Model.saved', self.$data);
 						self.$data.$setDirty(false);
@@ -4465,6 +5110,7 @@ Vue.component('a2-pager', {
 				return new Promise(function (resolve, reject) {
 					var jsonData = utils.toJson({ cmd: cmd, baseUrl: baseUrl, data: data });
 					dataservice.post(url, jsonData).then(function (data) {
+						if (self.__destroyed__) return;
 						if (utils.isObject(data))
 							resolve(data);
 						else if (utils.isString(data))
@@ -4495,8 +5141,10 @@ Vue.component('a2-pager', {
 				}
 				val.data = djson;
 				return new Promise(function (resolve, reject) {
+					if (vm.__destroyed__) return;
 					Vue.nextTick(() => {
 						vm.$invoke(cmd, data).then((result) => {
+							if (vm.__destroyed__) return;
 							val.result = result.Result.Value;
 							resolve(val.result);
 						});
@@ -4540,9 +5188,12 @@ Vue.component('a2-pager', {
 					}
 					let jsonData = utils.toJson(dataToQuery);
 					dataservice.post(url, jsonData).then(function (data) {
+						if (self.__destroyed__) return;
 						if (utils.isObject(data)) {
-							dat.$merge(data);
+							dat.$merge(data, true/*checkBindOnce*/);
+							modelInfo.reconcileAll(data.$ModelInfo);
 							dat._setModelInfo_(undefined, data);
+							dat._setRuntimeInfo_(data.$runtime);
 							dat._fireLoad_();
 							dat._restoreSelections(saveSels);
 							resolve(dat);
@@ -4597,16 +5248,17 @@ Vue.component('a2-pager', {
 				let urlToNavigate = urltools.createUrlForNavigate(url, data);
 				if (newWindow === true) {
 					let nwin = window.open(urlToNavigate, "_blank");
-					nwin.$$token = { token: this.__currentToken__, update: update };
+					if (nwin)
+						nwin.$$token = { token: this.__currentToken__, update: update };
 				}
 				else
 					this.$store.commit('navigate', { url: urlToNavigate });
 			},
-
 			$navigateSimple(url, newWindow, update) {
 				if (newWindow === true) {
 					let nwin = window.open(url, "_blank");
-					nwin.$$token = { token: this.__currentToken__, update: update };
+					if (nwin)
+						nwin.$$token = { token: this.__currentToken__, update: update };
 				}
 				else
 					this.$store.commit('navigate', { url: url });
@@ -4614,7 +5266,7 @@ Vue.component('a2-pager', {
 
 			$navigateExternal(url, newWindow) {
 				if (newWindow === true) {
-					let nwin = window.open(url, "_blank");
+					window.open(url, "_blank");
 				}
 				else
 					window.location.assign(url);
@@ -4626,14 +5278,47 @@ Vue.component('a2-pager', {
 				window.location = root + url;
 			},
 
+			$file(url, arg, opts) {
+				const root = window.$$rootUrl;
+				let id = arg;
+				let token = undefined;
+				if (arg && utils.isObject(arg)) {
+					id = utils.getStringId(arg);
+					if (arg._meta_ && arg._meta_.$token)
+						token = arg[arg._meta_.$token];
+				}
+				let fileUrl = urltools.combine(root, '_file', url, id);
+				let qry = {};
+				if (token)
+					qry.token = token;
+				fileUrl += urltools.makeQueryString(qry);
+				switch ((opts || {}).action) {
+					case 'download':
+						qry.export = 1;
+						htmlTools.downloadUrl(fileUrl);
+						break;
+					case 'print':
+						htmlTools.printDirect(fileUrl);
+						break;
+					default:
+						window.open(fileUrl, '_blank');
+				}
+			},
+
 			$attachment(url, arg, opts) {
 				const root = window.$$rootUrl;
 				let cmd = opts && opts.export ? 'export' : 'show';
 				let id = arg;
-				if (arg && utils.isObject(arg))
+				let token = undefined;
+				if (arg && utils.isObject(arg)) {
 					id = utils.getStringId(arg);
+					if (arg._meta_ && arg._meta_.$token)
+						token = arg[arg._meta_.$token];
+				}
 				let attUrl = urltools.combine(root, 'attachment', cmd, id);
-				let qry = { base: url};
+				let qry = { base: url };
+				if (token)
+					qry.token = token;
 				attUrl = attUrl + urltools.makeQueryString(qry);
 				if (opts && opts.newWindow)
 					window.open(attUrl, '_blank');
@@ -4662,9 +5347,14 @@ Vue.component('a2-pager', {
 				});
 			},
 
-			$dbRemove(elem, confirm) {
+			$dbRemove(elem, confirm, opts) {
 				if (!elem)
 					return;
+
+				if (isPermissionsDisabled(opts, elem)) {
+					this.$alert(locale.$PermissionDenied);
+					return;
+				}
 				if (this.$isLoading) return;
 				let id = elem.$id;
 				let lazy = elem.$parent.$isLazy ? elem.$parent.$isLazy() : false;
@@ -4686,6 +5376,7 @@ Vue.component('a2-pager', {
 					}
 					let jsonData = utils.toJson(jsonObj);
 					dataservice.post(postUrl, jsonData).then(function (data) {
+						if (self.__destroyed__) return;
 						elem.$remove(); // without confirm
 					}).catch(function (msg) {
 						self.$alertUi(msg);
@@ -4700,12 +5391,12 @@ Vue.component('a2-pager', {
 				}
 			},
 
-			$dbRemoveSelected(arr, confirm) {
+			$dbRemoveSelected(arr, confirm, opts) {
 				if (this.$isLoading) return;
 				let sel = arr.$selected;
 				if (!sel)
 					return;
-				this.$dbRemove(sel, confirm);
+				this.$dbRemove(sel, confirm, opts);
 			},
 
 			$openSelectedFrame(url, arr) {
@@ -4749,6 +5440,7 @@ Vue.component('a2-pager', {
 			},
 
 			$confirm(prms) {
+				// TODO: tools
 				if (utils.isString(prms))
 					prms = { message: prms };
 				prms.style = prms.style || 'confirm';
@@ -4765,6 +5457,12 @@ Vue.component('a2-pager', {
 
 			$alert(msg, title, list) {
 				// TODO: tools
+				if (utils.isObject(msg) && !title && !list) {
+					let prms = msg;
+					msg = prms.message || prms.msg;
+					title = prms.title;
+					list = prms.list;
+				}
 				let dlgData = {
 					promise: null, data: {
 						message: msg, title: title, style: 'alert', list: list
@@ -4797,6 +5495,13 @@ Vue.component('a2-pager', {
 				return this.$dialog('show', url, arg, query, opts);
 			},
 
+			$inlineOpen(id) {
+				eventBus.$emit('inlineDialog', { cmd: 'open', id: id});
+			},
+
+			$inlineClose(id, result) {
+				eventBus.$emit('inlineDialog', { cmd: 'close', id: id, result: result });
+			},
 
 			$dialog(command, url, arg, query, opts) {
 				if (this.$isReadOnly(opts))
@@ -4827,6 +5532,13 @@ Vue.component('a2-pager', {
 
 				function doDialog() {
 					// result always is raw data
+					if (isPermissionsDisabled(opts, arg)) {
+						that.$alert(locale.$PermissionDenied);
+						return;
+					}
+					if (utils.isFunction(query)) {
+						query = query();
+					}
 					switch (command) {
 						case 'new':
 							if (argIsNotAnArray()) return;
@@ -4887,7 +5599,8 @@ Vue.component('a2-pager', {
 					return;
 				}
 
-				if (opts && opts.saveRequired && this.$isDirty) {
+				let mo = this.$data.$mainObject;
+				if (opts && opts.saveRequired && (this.$isDirty || mo && mo.$isNew)) {
 					let dlgResult = null;
 					this.$save().then(() => { dlgResult = doDialog(); });
 					return dlgResult;
@@ -4895,29 +5608,51 @@ Vue.component('a2-pager', {
 				return doDialog();
 			},
 
-			$export() {
+			$export(arg, url, dat, opts) {
 				if (this.$isLoading) return;
-				const self = this;
-				const root = window.$$rootUrl;
-				let url = self.$baseUrl;
-				url = url.replace('/_page/', '/_export/');
-				window.location = root + url;
+				const doExport = () => {
+					let id = arg || '0';
+					if (arg && utils.isObject(arg))
+						id = utils.getStringId(arg);
+					const self = this;
+					const root = window.$$rootUrl;
+					let newurl = url ? urltools.combine('/_export', url, id) : self.$baseUrl.replace('/_page/', '/_export/');
+					newurl = urltools.combine(root, newurl) + urltools.makeQueryString(dat);
+					window.location = newurl; // to display errors
+				};
+
+				if (opts && opts.saveRequired && this.$isDirty) {
+					this.$save().then(() => {
+						doExport();
+					});
+				}
+				else {
+					doExport();
+				}
 			},
 
 			$exportTo(format, fileName) {
 				const root = window.$$rootUrl;
 				let elem = this.$el.getElementsByClassName('sheet-page');
 				if (!elem.length) {
-					console.dir('element not found (.sheet-page)');
+					console.error('element not found (.sheet-page)');
 					return;
 				}
 				let table = elem[0];
-				if (htmlTools) {
-					htmlTools.getColumnsWidth(table);
-					htmlTools.getRowHeight(table);
+				var tbl = table.getElementsByTagName('table');
+				if (tbl.length == 0) {
+					console.error('element not found (.sheet-page table)');
+					return;
 				}
-				let html = table.innerHTML;
-				let data = { format, html, fileName };
+				tbl = tbl[0];
+				if (htmlTools) {
+					htmlTools.getColumnsWidth(tbl);
+					// attention! from css!
+					let padding = tbl.classList.contains('compact') ? 4 : 12;
+					htmlTools.getRowHeight(tbl, padding);
+				}
+				let html = '<table>' + tbl.innerHTML + '</table>';
+				let data = { format, html, fileName, zoom: +(window.devicePixelRatio).toFixed(2) };
 				const routing = require('std:routing');
 				let url = `${root}/${routing.dataUrl()}/exportTo`;
 				dataservice.post(url, utils.toJson(data), true).then(function (blob) {
@@ -5002,6 +5737,10 @@ Vue.component('a2-pager', {
 
 			$modalClose(result) {
 				eventBus.$emit('modalClose', result);
+			},
+
+			$setFilter(obj, prop, val) {
+				eventBus.$emit('setFilter', { source: obj, prop: prop, value: val });
 			},
 
 			$modalSelect(array, opts) {
@@ -5101,6 +5840,8 @@ Vue.component('a2-pager', {
 					return utils.format(value, opts.dataType, { hideZeros: opts.hideZeros, format: opts.format });
 				if (opts.format && opts.format.indexOf('{0}') !== -1)
 					return opts.format.replace('{0}', value);
+				if (utils.isDate(value) && opts.format)
+					return utils.format(value, 'DateTime', { format: opts.format });
 				return value;
 			},
 
@@ -5122,6 +5863,7 @@ Vue.component('a2-pager', {
 					jsonData = utils.toJson({ baseUrl: self.$baseUrl, id: elem.$id });
 
 				dataservice.post(url, jsonData).then(function (data) {
+					if (self.__destroyed__) return;
 					let srcArray = data[propName];
 					arr.$empty();
 					for (let el of srcArray)
@@ -5166,6 +5908,7 @@ Vue.component('a2-pager', {
 						return;
 					}
 					dataservice.post(url, jsonData).then(function (data) {
+						if (self.__destroyed__) return;
 						if (propName in data) {
 							arr.$empty();
 							for (let el of data[propName])
@@ -5192,6 +5935,7 @@ Vue.component('a2-pager', {
 			},
 
 			$defer: platform.defer,
+			$print: platform.print,
 
 			$hasError(path) {
 				let ps = utils.text.splitPath(path);
@@ -5209,6 +5953,33 @@ Vue.component('a2-pager', {
 				if (arr && arr.length)
 					return arr[0].msg;
 				return '';
+			},
+
+			$getErrors(severity) {
+				let errs = this.$data.$forceValidate();
+				if (!errs || !errs.length)
+					return null;
+
+				if (severity && !utils.isArray(severity))
+					severity = [severity];
+
+				function isInclude(sev) {
+					if (!severity)
+						return true; // include
+					if (severity.indexOf(sev) !== -1)
+						return true;
+					return false;
+				}
+
+				let result = [];
+				for (let x of errs) {
+					for (let ix = 0; ix < x.e.length; ix++) {
+						let y = x.e[ix];
+						if (isInclude(y.severity))
+							result.push({ path: x, msg: y.msg, severity: y.severity, index: ix });
+					}
+				}
+				return result.length ? result : null;
 			},
 
 			__beginRequest() {
@@ -5251,6 +6022,7 @@ Vue.component('a2-pager', {
 					caller = this.$caller.$data;
 				this.__createController__();
 				root._modelLoad_(caller);
+				root._seal_(root);
 			},
 			__createController__() {
 				let ctrl = {
@@ -5262,6 +6034,8 @@ Vue.component('a2-pager', {
 					$alert: this.$alert,
 					$confirm: this.$confirm,
 					$showDialog: this.$showDialog,
+					$inlineOpen: this.$inlineOpen,
+					$inlineClose: this.$inlineClose,
 					$saveModified: this.$saveModified,
 					$asyncValid: this.$asyncValid,
 					$toast: this.$toast,
@@ -5269,7 +6043,8 @@ Vue.component('a2-pager', {
 					$reload: this.$reload,
 					$notifyOwner: this.$notifyOwner,
 					$navigate: this.$navigate,
-					$defer: platform.defer
+					$defer: platform.defer,
+					$setFilter: this.$setFilter
 				};
 				Object.defineProperty(ctrl, "$isDirty", {
 					enumerable: true,
@@ -5313,20 +6088,40 @@ Vue.component('a2-pager', {
 				let arg = { url: this.$baseUrl, result: false };
 				eventBus.$emit('isModalRequery', arg);
 				return arg.result;
+			},
+			__invoke__test__(args) {
+				args = args || {};
+				if (args.target !== 'controller')
+					return;
+				if (this.inDialog) {
+					// testId for dialogs only
+					if (args.testId !== this.__testId__)
+						return;
+				}
+				const root = this.$data;
+				switch (args.action) {
+					case 'eval':
+						args.result = utils.eval(root, args.path);
+						break;
+				}
+			},
+			__global_period_changed__(period) {
+				this.$data._fireGlobalPeriodChanged_(period);
 			}
 		},
 		created() {
 			let out = { caller: null };
 			eventBus.$emit('registerData', this, out);
 			this.$caller = out.caller;
+			this.__destroyed__ = false;
 
 			eventBus.$on('beginRequest', this.__beginRequest);
 			eventBus.$on('endRequest', this.__endRequest);
 			eventBus.$on('queryChange', this.__queryChange);
 			eventBus.$on('childrenSaved', this.__notified);
+			eventBus.$on('invokeTest', this.__invoke__test__);
+			eventBus.$on('globalPeriodChanged', this.__global_period_changed__);
 
-			// TODO: delete this.__queryChange
-			this.$on('localQueryChange', this.__queryChange);
 			this.$on('cwChange', this.__cwChange);
 			this.__asyncCache__ = {};
 			this.__currentToken__ = window.app.nextToken();
@@ -5334,24 +6129,36 @@ Vue.component('a2-pager', {
 				log.time('create time:', __createStartTime, false);
 		},
 		beforeDestroy() {
+			this.$data._fireUnload_();
 		},
 		destroyed() {
 			//console.dir('base.js has been destroyed');
+			this.$caller = null;
 			eventBus.$emit('registerData', null);
 			eventBus.$off('beginRequest', this.__beginRequest);
 			eventBus.$off('endRequest', this.__endRequest);
 			eventBus.$off('queryChange', this.__queryChange);
 			eventBus.$off('childrenSaved', this.__notified);
+			eventBus.$off('invokeTest', this.__invoke__test__);
+			eventBus.$off('globalPeriodChanged', this.__global_period_changed__);
 
-			this.$off('localQueryChange', this.__queryChange);
 			this.$off('cwChange', this.__cwChange);
 			htmlTools.removePrintFrame();
+			if (this.$data.$destroy)
+				this.$data.$destroy();
+			this._data = null;
+			this.__destroyed__ = true;
 		},
 		beforeUpdate() {
 			__updateStartTime = performance.now();
 		},
 		beforeCreate() {
 			__createStartTime = performance.now();
+		},
+		mounted() {
+			let testId = this.$el.getAttribute('test-id');
+			if (testId)
+				this.__testId__ = testId;
 		},
 		updated() {
 			if (log)
